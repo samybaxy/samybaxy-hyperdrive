@@ -1,28 +1,28 @@
 <?php
 /**
- * Detection Result Caching for Turbo Charge
+ * Detection Result Caching for Samybaxy Hyperdrive
  *
  * Caches plugin detection results to avoid redundant analysis
  * on repeated URL patterns and post content.
  *
- * @package TurboCharge
+ * @package SamybaxyHyperdrive
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class TurboCharge_Detection_Cache {
+class SHYPDR_Detection_Cache {
 
     /**
      * Cache group for URL pattern caching
      */
-    const URL_CACHE_GROUP = 'tc_url_detection';
+    const URL_CACHE_GROUP = 'shypdr_url_detection';
 
     /**
      * Cache group for content scanning
      */
-    const CONTENT_CACHE_GROUP = 'tc_content_detection';
+    const CONTENT_CACHE_GROUP = 'shypdr_content_detection';
 
     /**
      * Cache expiration time (1 hour)
@@ -77,11 +77,11 @@ class TurboCharge_Detection_Cache {
      */
     public static function get_content_scan($post_id) {
         // Check post meta first (persistent)
-        $cached = get_post_meta($post_id, '_tc_required_plugins', true);
+        $cached = get_post_meta($post_id, '_shypdr_required_plugins', true);
 
         if (!empty($cached) && is_array($cached)) {
             // Check if cache is still valid (not older than 1 week)
-            $cached_time = get_post_meta($post_id, '_tc_cache_time', true);
+            $cached_time = get_post_meta($post_id, '_shypdr_cache_time', true);
 
             if ($cached_time && (current_time('timestamp') - $cached_time) < WEEK_IN_SECONDS) {
                 return $cached;
@@ -99,8 +99,8 @@ class TurboCharge_Detection_Cache {
      * @return bool Success
      */
     public static function set_content_scan($post_id, $detected) {
-        update_post_meta($post_id, '_tc_required_plugins', $detected);
-        update_post_meta($post_id, '_tc_cache_time', current_time('timestamp'));
+        update_post_meta($post_id, '_shypdr_required_plugins', $detected);
+        update_post_meta($post_id, '_shypdr_cache_time', current_time('timestamp'));
         return true;
     }
 
@@ -116,7 +116,7 @@ class TurboCharge_Detection_Cache {
         $url = strtok($url, '#');
 
         // Generate short hash
-        return 'tc_url_' . md5($url);
+        return 'shypdr_url_' . md5($url);
     }
 
     /**
@@ -127,9 +127,9 @@ class TurboCharge_Detection_Cache {
 
         // Clear transients
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk cache deletion, more efficient than looping delete_transient()
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_tc_url_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_shypdr_url_%'");
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk cache deletion, more efficient than looping delete_transient()
-        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_tc_url_%'");
+        $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_timeout_shypdr_url_%'");
 
         // Clear object cache if available
         if (wp_using_ext_object_cache()) {
@@ -143,8 +143,8 @@ class TurboCharge_Detection_Cache {
      * @param int $post_id Post ID
      */
     public static function clear_post_cache($post_id) {
-        delete_post_meta($post_id, '_tc_required_plugins');
-        delete_post_meta($post_id, '_tc_cache_time');
+        delete_post_meta($post_id, '_shypdr_required_plugins');
+        delete_post_meta($post_id, '_shypdr_cache_time');
     }
 
     /**
@@ -154,9 +154,9 @@ class TurboCharge_Detection_Cache {
         global $wpdb;
 
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk cache deletion, more efficient than looping delete_post_meta()
-        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_tc_required_plugins'");
+        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_shypdr_required_plugins'");
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Bulk cache deletion, more efficient than looping delete_post_meta()
-        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_tc_cache_time'");
+        $wpdb->query("DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_shypdr_cache_time'");
     }
 
     /**
@@ -178,13 +178,13 @@ class TurboCharge_Detection_Cache {
         // Count URL cache entries
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statistics query, no WP function available for counting transients
         $url_cache_count = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '_transient_tc_url_%'"
+            "SELECT COUNT(*) FROM {$wpdb->options} WHERE option_name LIKE '_transient_shypdr_url_%'"
         );
 
         // Count content cache entries
         // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- Statistics query, no WP function available for counting postmeta
         $content_cache_count = $wpdb->get_var(
-            "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = '_tc_required_plugins'"
+            "SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key = '_shypdr_required_plugins'"
         );
 
         // Calculate approximate cache size

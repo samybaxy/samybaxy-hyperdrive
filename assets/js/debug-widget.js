@@ -1,15 +1,15 @@
 /**
- * Turbo Charge Debug Widget
+ * Samybaxy Hyperdrive Debug Widget
  */
 
 (function () {
     'use strict';
 
     document.addEventListener('DOMContentLoaded', function () {
-        const widget = document.getElementById('tc-debug-widget');
+        const widget = document.getElementById('shypdr-debug-widget');
         if (!widget) return;
 
-        const toggle = widget.querySelector('.tc-debug-toggle');
+        const toggle = widget.querySelector('.shypdr-debug-toggle');
         if (!toggle) return;
 
         // Toggle widget expansion

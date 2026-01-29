@@ -1,6 +1,6 @@
 <?php
 /**
- * Content Analyzer for Turbo Charge
+ * Content Analyzer for Samybaxy Hyperdrive
  *
  * Intelligently detects which plugins are required for each page by analyzing:
  * - Post content (shortcodes, blocks)
@@ -8,14 +8,14 @@
  * - Page builder elements
  * - Post type and taxonomy context
  *
- * @package TurboCharge
+ * @package SamybaxyHyperdrive
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class TurboCharge_Content_Analyzer {
+class SHYPDR_Content_Analyzer {
 
     /**
      * Shortcode to plugin mapping
@@ -897,7 +897,7 @@ class TurboCharge_Content_Analyzer {
              FROM {$wpdb->postmeta} pm
              INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
              WHERE p.post_name = %s
-             AND pm.meta_key = '_tc_required_plugins'
+             AND pm.meta_key = '_shypdr_required_plugins'
              AND p.post_status = 'publish'
              LIMIT 1",
             $slug
@@ -923,8 +923,8 @@ class TurboCharge_Content_Analyzer {
         $required = self::analyze_post($post_id);
 
         if (!empty($required)) {
-            update_post_meta($post_id, '_tc_required_plugins', $required);
-            update_post_meta($post_id, '_tc_analyzed_at', current_time('timestamp'));
+            update_post_meta($post_id, '_shypdr_required_plugins', $required);
+            update_post_meta($post_id, '_shypdr_analyzed_at', current_time('timestamp'));
             return true;
         }
 
@@ -947,7 +947,7 @@ class TurboCharge_Content_Analyzer {
             "SELECT p.post_name, pm.meta_value
              FROM {$wpdb->postmeta} pm
              INNER JOIN {$wpdb->posts} p ON pm.post_id = p.ID
-             WHERE pm.meta_key = '_tc_required_plugins'
+             WHERE pm.meta_key = '_shypdr_required_plugins'
              AND p.post_status = 'publish'
              AND p.post_name != ''",
             ARRAY_A

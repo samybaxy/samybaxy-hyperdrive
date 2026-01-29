@@ -1,8 +1,8 @@
-# Support Turbo Charge Development
+# Support Samybaxy Hyperdrive Development
 
-Thank you for using **Turbo Charge**! If this plugin has helped speed up your WordPress site and you'd like to support continued development, donations are greatly appreciated.
+Thank you for using **Samybaxy Hyperdrive**! If this plugin has helped speed up your WordPress site and you'd like to support continued development, donations are greatly appreciated.
 
-## 💰 Cryptocurrency Donations
+## Cryptocurrency Donations
 
 ### Ethereum (ETH)
 ```
@@ -26,9 +26,9 @@ T9z5MjQogjmui248r38Dd6ddZ98F1wBpVk
 
 ---
 
-## 🙏 Thank You!
+## Thank You!
 
-Your support helps maintain and improve Turbo Charge, making WordPress faster for everyone.
+Your support helps maintain and improve Samybaxy Hyperdrive, making WordPress faster for everyone.
 
 Every contribution, no matter how small, is deeply appreciated and goes directly toward:
 - Ongoing plugin development and maintenance
@@ -38,13 +38,13 @@ Every contribution, no matter how small, is deeply appreciated and goes directly
 
 ---
 
-## 🐛 Report Issues
+## Report Issues
 
 Found a bug or have a feature request? Please report it at:
-https://github.com/samybaxy/turbo-charge/issues
+https://github.com/samybaxy/samybaxy-hyperdrive/issues
 
 ---
 
-**Turbo Charge** - Making WordPress sites 65-75% faster through intelligent plugin filtering.
+**Samybaxy Hyperdrive** - Making WordPress sites 65-75% faster through intelligent plugin filtering.
 
-Version 5.1.0 | GPL v2 or later | [GitHub Repository](https://github.com/samybaxy/turbo-charge)
+Version 6.0.0 | GPL v2 or later | [GitHub Repository](https://github.com/samybaxy/samybaxy-hyperdrive)

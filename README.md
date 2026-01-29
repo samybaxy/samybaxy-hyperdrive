@@ -1,20 +1,20 @@
-# Turbo Charge
+# Samybaxy Hyperdrive
 
 **Revolutionary WordPress Performance Plugin**
 
-Transform your WordPress site from sluggish to lightning-fast with intelligent plugin filtering technology. Turbo Charge makes your site **65-75% faster** by loading only the plugins each page actually needs—automatically, without breaking anything.
+Transform your WordPress site from sluggish to lightning-fast with intelligent plugin filtering technology. Samybaxy Hyperdrive makes your site **65-75% faster** by loading only the plugins each page actually needs—automatically, without breaking anything.
 
-## Why Turbo Charge Changes Everything
+## Why Samybaxy Hyperdrive Changes Everything
 
 Imagine this: Your WordPress site has 120 plugins installed. Every single page—whether it's a blog post, shop page, or contact form—loads all 120 plugins, even though most pages only need 10-15 of them. This is the WordPress performance bottleneck nobody talks about.
 
-**Turbo Charge solves this.** Instead of loading everything everywhere, it intelligently detects what each page needs and filters out the rest. Your homepage loads 12 plugins. Your shop loads 35. Your blog posts load 18. The result? Pages that load in 1.2 seconds instead of 4.5 seconds. Sites that feel instantly responsive. Visitors who actually stick around.
+**Samybaxy Hyperdrive solves this.** Instead of loading everything everywhere, it intelligently detects what each page needs and filters out the rest. Your homepage loads 12 plugins. Your shop loads 35. Your blog posts load 18. The result? Pages that load in 1.2 seconds instead of 4.5 seconds. Sites that feel instantly responsive. Visitors who actually stick around.
 
 This isn't just another caching plugin or image optimizer. This is fundamentally rethinking how WordPress loads resources, delivering performance gains that compound with every plugin you have installed.
 
 ## At a Glance
 
-**Version:** 5.1.0 (Production Ready)
+**Version:** 6.0.0 (Production Ready)
 **Requirements:** WordPress 6.4+, PHP 8.2+
 **License:** GPLv2 or later
 **Performance Impact:** 65-75% faster page loads, 85-90% plugin reduction per page
@@ -24,10 +24,10 @@ This isn't just another caching plugin or image optimizer. This is fundamentally
 ## Quick Start
 
 ### Installation
-1. Plugin is located at `/wp-content/plugins/turbo-charge/`
+1. Plugin is located at `/wp-content/plugins/samybaxy-hyperdrive/`
 2. Go to WordPress Admin → Plugins
-3. Find "Turbo Charge" and click "Activate"
-4. Go to Settings → Turbo Charge to enable filtering
+3. Find "Samybaxy Hyperdrive" and click "Activate"
+4. Go to Settings → Samybaxy Hyperdrive to enable filtering
 
 ### Enabling Features
 1. **Enable Plugin Filtering**: Reduces plugin load by 85-90% per page
@@ -35,14 +35,14 @@ This isn't just another caching plugin or image optimizer. This is fundamentally
 
 ## What's Implemented
 
-### ✅ Core System
+### Core System
 - **Main Plugin Class** (`includes/class-main.php`):
   - Plugin initialization and setup
   - Dependency map for 50+ popular WordPress plugins
   - Recursive dependency resolution algorithm
   - Safety mechanisms and fallback logic
 
-### ✅ Detection System
+### Detection System
 The plugin automatically detects which plugins are needed via:
 
 1. **URL-based detection**: Recognizes WooCommerce, courses, membership, blog pages
@@ -50,7 +50,7 @@ The plugin automatically detects which plugins are needed via:
 3. **User role detection**: Loads extra plugins for logged-in users, affiliates, members
 4. **Smart defaults**: Always loads core plugins like JetEngine, Elementor
 
-### ✅ Plugin Ecosystems Supported
+### Plugin Ecosystems Supported
 - **JetEngine**: jet-engine, jet-menu, jet-blocks, jet-elements, jet-tabs, jet-popup, jet-woo-builder, crocoblock-wizard, and 10+ modules
 - **WooCommerce**: woocommerce, memberships, subscriptions, product bundles, smart coupons
 - **Elementor**: elementor, elementor-pro, the-plus-addons, thim-elementor-kit
@@ -59,7 +59,7 @@ The plugin automatically detects which plugins are needed via:
 - **Forms**: fluentform, fluentformpro
 - **Other**: LearnPress, Affiliate WP, EmbedPress, Presto Player
 
-### ✅ Safety Features
+### Safety Features
 - Never filters WordPress admin area
 - Never filters AJAX requests
 - Never filters REST API requests
@@ -71,14 +71,14 @@ The plugin automatically detects which plugins are needed via:
 - **Security:** Plugin info hidden from frontend users and visitors
 - **Clean:** No error logging or debug output
 
-### ✅ Admin Interface
-Settings page at **Settings → Turbo Charge** with:
+### Admin Interface
+Settings page at **Settings → Samybaxy Hyperdrive** with:
 - Enable/disable plugin filtering checkbox
 - Enable/disable debug widget checkbox
 - Performance logs showing recent page loads
 - Stats: plugins loaded, plugins filtered, reduction percentage
 
-### ✅ Debug Widget
+### Debug Widget
 Floating widget that appears on frontend when enabled:
 - **Admin only** - Only visible to logged-in administrators
 - Frontend users and incognito visitors cannot see it (security)
@@ -113,13 +113,21 @@ Works automatically with no setup needed. Just enable and it starts optimizing.
 ## Code Architecture
 
 ```
-turbo-charge/
-├── turbo-charge.php          Main plugin file (entry point)
+samybaxy-hyperdrive/
+├── samybaxy-hyperdrive.php   Main plugin file (entry point)
 ├── includes/
-│   └── class-main.php           Core plugin logic (700+ lines)
+│   ├── class-main.php           Core plugin logic
+│   ├── class-plugin-scanner.php Intelligent plugin analysis
+│   ├── class-dependency-detector.php Auto dependency detection
+│   ├── class-content-analyzer.php Content scanning
+│   ├── class-detection-cache.php Detection caching
+│   └── class-requirements-cache.php URL requirements cache
+├── mu-loader/
+│   └── shypdr-mu-loader.php     MU-plugin for early filtering
 ├── assets/
 │   ├── css/
-│   │   └── debug-widget.css     Debug widget styling
+│   │   ├── debug-widget.css     Debug widget styling
+│   │   └── admin-styles.css     Admin page styling
 │   └── js/
 │       └── debug-widget.js      Debug widget interactivity
 └── README.md                    This file
@@ -166,13 +174,13 @@ Load jet-engine
 ```
 Instead of: 120 plugins
 We load: 35-45 plugins
-Result: 65-75% faster! ⚡
+Result: 65-75% faster!
 ```
 
 ## Testing the Plugin
 
 ### Manual Testing
-1. Go to Settings → Turbo Charge
+1. Go to Settings → Samybaxy Hyperdrive
 2. Check "Enable Plugin Filtering"
 3. Check "Enable Debug Widget"
 4. Save changes
@@ -193,7 +201,7 @@ Result: 65-75% faster! ⚡
 - The system falls back to all plugins if < 3 are detected
 
 **Menu broken?**
-- Go to Settings → Turbo Charge
+- Go to Settings → Samybaxy Hyperdrive
 - Uncheck "Enable Plugin Filtering"
 - Save
 - This disables filtering while you investigate
@@ -216,9 +224,11 @@ Typical performance improvements:
 ## Settings and Options
 
 Stored in WordPress options:
-- `tc_enabled` (bool): Enable/disable plugin filtering
-- `tc_debug_enabled` (bool): Enable/disable debug widget
-- `tc_logs` (transient): Performance logs (expires hourly)
+- `shypdr_enabled` (bool): Enable/disable plugin filtering
+- `shypdr_debug_enabled` (bool): Enable/disable debug widget
+- `shypdr_essential_plugins` (array): User-customized essential plugins
+- `shypdr_dependency_map` (array): Auto-detected plugin dependencies
+- `shypdr_logs` (transient): Performance logs (expires hourly)
 
 ## Plugin Dependencies and Hooks
 
@@ -261,49 +271,60 @@ Edit the detection methods in `/includes/class-main.php`:
 
 ## Performance Targets Met
 
-- ✅ Plugin reduction: 85-90% on most pages
-- ✅ Speed improvement: 65-75%
-- ✅ Filter overhead: < 2.5ms
-- ✅ Memory overhead: ~70KB
-- ✅ Zero configuration needed
-- ✅ Zero broken functionality
-- ✅ Jet Menu works perfectly
+- Plugin reduction: 85-90% on most pages
+- Speed improvement: 65-75%
+- Filter overhead: < 2.5ms
+- Memory overhead: ~70KB
+- Zero configuration needed
+- Zero broken functionality
+- Jet Menu works perfectly
 
 ## Changelog
 
-### v5.1.0 (Current - January 2026)
+### v6.0.0 (Current - January 29, 2026)
+**BREAKING CHANGE: Complete Plugin Rename**
+- **BREAKING:** Plugin renamed from "Turbo Charge" to "Samybaxy Hyperdrive"
+- **BREAKING:** Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
+- **BREAKING:** All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
+- **BREAKING:** MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
+- **BREAKING:** All database options, transients, and post meta use new prefix
+- **NEW:** Extracted inline CSS to separate admin-styles.css file
+- **IMPROVED:** WordPress.org plugin review compliance
+- **IMPROVED:** All CSS classes use new shypdr- prefix
+- **NOTE:** Fresh installation required - settings from previous versions will not migrate
+
+### v5.1.0 (December 2025)
 **Major Updates:**
-- ✨ **NEW:** Heuristic Dependency Detection System
+- **NEW:** Heuristic Dependency Detection System
   - Automatic plugin dependency detection using 4 methods
   - WordPress 6.5+ "Requires Plugins" header support
   - Code analysis (class_exists, constants, hooks)
   - Pattern matching for plugin naming conventions
   - Database storage with auto-rebuild on plugin changes
   - Zero manual maintenance required
-- 🔧 **IMPROVED:** Dependencies admin page with visual statistics
-- 🔧 **IMPROVED:** Auto-rebuild on plugin activation/deactivation
-- 📚 **DOCS:** Complete internationalization (i18n) for WordPress.org
-- 📚 **DOCS:** WordPress Coding Standards compliance
-- 📚 **DOCS:** WordPress.org-compliant readme.txt added
-- 🔧 **COMPLIANCE:** Removed 'wp' trademark references (January 18, 2026)
-- 🔧 **IMPROVED:** Nested path detection for complex URL structures
-- 🐛 **FIXED:** Logged-in user membership plugin loading
-- 🐛 **FIXED:** Debug widget with scrollable plugin lists
-- 🗑️ **REMOVED:** Hardcoded dependency map (replaced with heuristic detection)
+- **IMPROVED:** Dependencies admin page with visual statistics
+- **IMPROVED:** Auto-rebuild on plugin activation/deactivation
+- **DOCS:** Complete internationalization (i18n) for WordPress.org
+- **DOCS:** WordPress Coding Standards compliance
+- **DOCS:** WordPress.org-compliant readme.txt added
+- **IMPROVED:** Nested path detection for complex URL structures
+- **FIXED:** Logged-in user membership plugin loading
+- **FIXED:** Debug widget with scrollable plugin lists
+- **REMOVED:** Hardcoded dependency map (replaced with heuristic detection)
 
 ### v5.0.0 (December 5, 2025)
 **Performance & Intelligence:**
-- ✨ **NEW:** Intelligent Plugin Scanner with heuristic analysis
-- ✨ **NEW:** Dual-layer caching system (URL + content detection)
-- ✨ **NEW:** Admin UI for managing essential plugins
-- ✨ **NEW:** Requirements cache for O(1) lookups
-- ✨ **NEW:** Dynamic essential plugins (replaces hardcoded whitelist)
-- ✨ **NEW:** Filter hooks for extensibility
-- ✨ **NEW:** Automatic cache invalidation on content changes
-- ⚡ **PERFORMANCE:** 40-50% faster average filter time with caching
-- ⚡ **PERFORMANCE:** 60-75% faster for cached requests
-- 🔧 **IMPROVED:** More accurate essential plugin detection
-- 🔧 **IMPROVED:** Better customization options
+- **NEW:** Intelligent Plugin Scanner with heuristic analysis
+- **NEW:** Dual-layer caching system (URL + content detection)
+- **NEW:** Admin UI for managing essential plugins
+- **NEW:** Requirements cache for O(1) lookups
+- **NEW:** Dynamic essential plugins (replaces hardcoded whitelist)
+- **NEW:** Filter hooks for extensibility
+- **NEW:** Automatic cache invalidation on content changes
+- **PERFORMANCE:** 40-50% faster average filter time with caching
+- **PERFORMANCE:** 60-75% faster for cached requests
+- **IMPROVED:** More accurate essential plugin detection
+- **IMPROVED:** Better customization options
 
 ### v4.0.5 (November 2025)
 **Stability & Production:**
@@ -358,7 +379,7 @@ The plugin produces **zero error logging** or debug output. It is completely cle
 
 ### Performance Data
 All performance metrics are stored and displayed in:
-- **Settings → Turbo Charge** → "Recent Performance Logs" table
+- **Settings → Samybaxy Hyperdrive** → "Recent Performance Logs" table
 - Shows: timestamp, URL, plugins loaded, plugins filtered, reduction %
 - Expandable details for each request
 - Clear button to reset logs
@@ -366,7 +387,7 @@ All performance metrics are stored and displayed in:
 ### Debugging Checklist
 
 **If pages are slow:**
-1. Go to Settings → Turbo Charge
+1. Go to Settings → Samybaxy Hyperdrive
 2. Check "Recent Performance Logs" section
 3. Look for plugins loaded count (should be 20-50, not 100+)
 4. Check reduction % (should be 65%+)
@@ -412,15 +433,16 @@ For developers and technical users:
 ## Support
 
 For issues or questions:
+- **GitHub:** https://github.com/samybaxy/samybaxy-hyperdrive
 - **DOCUMENTATION.md** - Complete technical documentation with examples (local reference)
-- **Settings → Turbo Charge** - View performance logs and stats
+- **Settings → Samybaxy Hyperdrive** - View performance logs and stats
 - **Performance data** - Review plugin load details in admin settings page
 - **Debug widget** - Enable to see real-time plugin loading information
 - Disable filtering and test to isolate issues
 
 ---
 
-**Last Updated**: January 23, 2026
-**Version**: 5.1.0
+**Last Updated**: January 29, 2026
+**Version**: 6.0.0
 **Status**: Production Ready
 **Author**: samybaxy

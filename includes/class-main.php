@@ -1,15 +1,15 @@
 <?php
 /**
- * Main plugin class for Turbo Charge
+ * Main plugin class for Samybaxy Hyperdrive
  *
- * @package TurboCharge
+ * @package SamybaxyHyperdrive
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class TurboCharge_Main {
+class SHYPDR_Main {
     private static $instance = null;
     private static $enabled = false;
     private static $dependency_map = [];
@@ -26,10 +26,10 @@ class TurboCharge_Main {
             return self::$essential_plugins_cache;
         }
 
-        $essential = apply_filters('tc_essential_plugins', null);
+        $essential = apply_filters('shypdr_essential_plugins', null);
 
         if ($essential === null) {
-            $essential = TurboCharge_Plugin_Scanner::get_essential_plugins();
+            $essential = SHYPDR_Plugin_Scanner::get_essential_plugins();
         }
 
         if (empty($essential)) {
@@ -54,19 +54,20 @@ class TurboCharge_Main {
      * Setup plugin hooks and components
      */
     private function setup() {
-        self::$enabled = get_option('tc_enabled', false);
+        self::$enabled = get_option('shypdr_enabled', false);
 
         // Load dependency map (dynamically detected or from database)
-        self::$dependency_map = TurboCharge_Dependency_Detector::get_dependency_map();
+        self::$dependency_map = SHYPDR_Dependency_Detector::get_dependency_map();
 
         // Setup admin hooks
         if (is_admin()) {
             add_action('admin_menu', [$this, 'register_admin_menu']);
             add_action('admin_init', [$this, 'register_settings']);
             add_action('admin_init', [$this, 'handle_clear_logs_request']);
+            add_action('admin_enqueue_scripts', [$this, 'enqueue_admin_assets']);
         }
 
-        // NOTE: Plugin filtering is now handled by MU-loader (tc-mu-loader.php)
+        // NOTE: Plugin filtering is now handled by MU-loader (shypdr-mu-loader.php)
         // The MU-loader runs BEFORE plugins load, which is required for actual filtering
         // This main plugin now only handles:
         // - Admin settings UI
@@ -75,7 +76,7 @@ class TurboCharge_Main {
         // - Logging and statistics
 
         // Load debug widget on frontend if enabled (admin only for security)
-        if (!is_admin() && get_option('tc_debug_enabled', false)) {
+        if (!is_admin() && get_option('shypdr_debug_enabled', false)) {
             add_action('wp_footer', [$this, 'render_debug_widget']);
             add_action('wp_enqueue_scripts', [$this, 'enqueue_debug_assets']);
         }
@@ -90,7 +91,7 @@ class TurboCharge_Main {
         add_action('delete_post', [$this, 'remove_post_requirements'], 10, 1);
 
         // Log MU-loader results for display
-        if (!is_admin() && tc_is_mu_loader_active()) {
+        if (!is_admin() && shypdr_is_mu_loader_active()) {
             add_action('wp_loaded', [$this, 'log_mu_filter_results']);
         }
     }
@@ -99,7 +100,7 @@ class TurboCharge_Main {
      * Log MU-loader filter results
      */
     public function log_mu_filter_results() {
-        $data = tc_get_mu_filter_data();
+        $data = shypdr_get_mu_filter_data();
         if (!$data || !$data['filtered']) {
             return;
         }
@@ -122,16 +123,16 @@ class TurboCharge_Main {
             'mu_loader' => true
         ];
 
-        $logs = get_transient('tc_logs') ?: [];
+        $logs = get_transient('shypdr_logs') ?: [];
         $logs[] = $log;
-        set_transient('tc_logs', array_slice($logs, -50), HOUR_IN_SECONDS);
+        set_transient('shypdr_logs', array_slice($logs, -50), HOUR_IN_SECONDS);
     }
 
     /**
      * Clear post-specific cache when post is saved
      */
     public function clear_post_cache($post_id) {
-        TurboCharge_Detection_Cache::clear_post_cache($post_id);
+        SHYPDR_Detection_Cache::clear_post_cache($post_id);
     }
 
     /**
@@ -139,11 +140,11 @@ class TurboCharge_Main {
      */
     public function handle_plugin_activation() {
         // Rebuild dependency map to include newly activated plugin
-        TurboCharge_Dependency_Detector::rebuild_dependency_map();
+        SHYPDR_Dependency_Detector::rebuild_dependency_map();
 
         // Clear caches
-        TurboCharge_Detection_Cache::clear_all_caches();
-        TurboCharge_Requirements_Cache::clear();
+        SHYPDR_Detection_Cache::clear_all_caches();
+        SHYPDR_Requirements_Cache::clear();
         self::$essential_plugins_cache = null;
         self::$dependency_map = [];
     }
@@ -153,11 +154,11 @@ class TurboCharge_Main {
      */
     public function handle_plugin_deactivation() {
         // Rebuild dependency map to remove deactivated plugin
-        TurboCharge_Dependency_Detector::rebuild_dependency_map();
+        SHYPDR_Dependency_Detector::rebuild_dependency_map();
 
         // Clear caches
-        TurboCharge_Detection_Cache::clear_all_caches();
-        TurboCharge_Requirements_Cache::clear();
+        SHYPDR_Detection_Cache::clear_all_caches();
+        SHYPDR_Requirements_Cache::clear();
         self::$essential_plugins_cache = null;
         self::$dependency_map = [];
     }
@@ -180,7 +181,7 @@ class TurboCharge_Main {
         }
 
         // Update requirements cache
-        TurboCharge_Requirements_Cache::update_post_requirements($post_id);
+        SHYPDR_Requirements_Cache::update_post_requirements($post_id);
     }
 
     /**
@@ -189,21 +190,21 @@ class TurboCharge_Main {
      * @param int $post_id Post ID
      */
     public function remove_post_requirements($post_id) {
-        TurboCharge_Requirements_Cache::remove_post_requirements($post_id);
+        SHYPDR_Requirements_Cache::remove_post_requirements($post_id);
     }
 
     /**
-     * NOTE: Dependency map is now auto-detected by TurboCharge_Dependency_Detector
+     * NOTE: Dependency map is now auto-detected by SHYPDR_Dependency_Detector
      *
      * The dependency map is no longer hardcoded. Instead, it is:
      * 1. Automatically detected by scanning plugin headers and code
-     * 2. Stored in database option 'tc_dependency_map'
+     * 2. Stored in database option 'shypdr_dependency_map'
      * 3. Rebuilt on plugin activation/deactivation
-     * 4. Can be customized via filter: apply_filters('tc_dependency_map', $map)
+     * 4. Can be customized via filter: apply_filters('shypdr_dependency_map', $map)
      *
      * To add custom dependencies programmatically:
      *
-     * add_filter('tc_dependency_map', function($map) {
+     * add_filter('shypdr_dependency_map', function($map) {
      *     $map['my-plugin'] = [
      *         'depends_on' => ['parent-plugin'],
      *         'plugins_depending' => []
@@ -211,7 +212,7 @@ class TurboCharge_Main {
      *     return $map;
      * });
      *
-     * Or use the admin UI: Settings → Turbo Charge → Dependencies
+     * Or use the admin UI: Settings → Samybaxy Hyperdrive → Dependencies
      */
 
     /**
@@ -219,12 +220,12 @@ class TurboCharge_Main {
      */
     public function handle_clear_logs_request() {
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification handled in called methods based on action type
-        if (!isset($_POST['tc_action'])) {
+        if (!isset($_POST['shypdr_action'])) {
             return;
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Missing -- Nonce verification handled in called methods based on action type
-        $action = sanitize_text_field( wp_unslash( $_POST['tc_action'] ) );
+        $action = sanitize_text_field( wp_unslash( $_POST['shypdr_action'] ) );
 
         if ( 'clear_logs' === $action ) {
             $this->clear_performance_logs();
@@ -239,17 +240,17 @@ class TurboCharge_Main {
      * Rebuild the requirements lookup cache
      */
     public function rebuild_requirements_cache() {
-        if ( ! isset( $_POST['tc_rebuild_cache_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['tc_rebuild_cache_nonce'] ) ), 'tc_rebuild_cache_action' ) ) {
-            wp_die( esc_html__( 'Security check failed', 'turbo-charge' ) );
+        if ( ! isset( $_POST['shypdr_rebuild_cache_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['shypdr_rebuild_cache_nonce'] ) ), 'shypdr_rebuild_cache_action' ) ) {
+            wp_die( esc_html__( 'Security check failed', 'samybaxy-hyperdrive' ) );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied', 'turbo-charge' ) );
+            wp_die( esc_html__( 'Access denied', 'samybaxy-hyperdrive' ) );
         }
 
-        $count = TurboCharge_Requirements_Cache::rebuild_lookup_table();
+        $count = SHYPDR_Requirements_Cache::rebuild_lookup_table();
 
-        wp_safe_redirect(add_query_arg('tc_cache_rebuilt', $count, admin_url('options-general.php?page=tc-settings')));
+        wp_safe_redirect(add_query_arg('shypdr_cache_rebuilt', $count, admin_url('options-general.php?page=shypdr-settings')));
         exit;
     }
 
@@ -257,18 +258,18 @@ class TurboCharge_Main {
      * Clear performance logs
      */
     public function clear_performance_logs() {
-        if ( ! isset( $_POST['tc_clear_logs_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['tc_clear_logs_nonce'] ) ), 'tc_clear_logs_action' ) ) {
-            wp_die( esc_html__( 'Security check failed', 'turbo-charge' ) );
+        if ( ! isset( $_POST['shypdr_clear_logs_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['shypdr_clear_logs_nonce'] ) ), 'shypdr_clear_logs_action' ) ) {
+            wp_die( esc_html__( 'Security check failed', 'samybaxy-hyperdrive' ) );
         }
 
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied', 'turbo-charge' ) );
+            wp_die( esc_html__( 'Access denied', 'samybaxy-hyperdrive' ) );
         }
 
-        delete_transient('tc_logs');
+        delete_transient('shypdr_logs');
         self::$log_messages = [];
 
-        wp_safe_redirect(add_query_arg('tc_logs_cleared', '1', admin_url('options-general.php?page=tc-settings')));
+        wp_safe_redirect(add_query_arg('shypdr_logs_cleared', '1', admin_url('options-general.php?page=shypdr-settings')));
         exit;
     }
 
@@ -277,10 +278,10 @@ class TurboCharge_Main {
      */
     public function register_admin_menu() {
         add_options_page(
-            'Turbo Charge',
-            'Turbo Charge',
+            'Samybaxy Hyperdrive',
+            'Samybaxy Hyperdrive',
             'manage_options',
-            'tc-settings',
+            'shypdr-settings',
             [$this, 'render_settings_page']
         );
     }
@@ -289,12 +290,12 @@ class TurboCharge_Main {
      * Register settings
      */
     public function register_settings() {
-        register_setting('tc_settings', 'tc_enabled', [
+        register_setting('shypdr_settings', 'shypdr_enabled', [
             'type' => 'boolean',
             'sanitize_callback' => 'rest_sanitize_boolean',
             'default' => false,
         ]);
-        register_setting('tc_settings', 'tc_debug_enabled', [
+        register_setting('shypdr_settings', 'shypdr_debug_enabled', [
             'type' => 'boolean',
             'sanitize_callback' => 'rest_sanitize_boolean',
             'default' => false,
@@ -302,11 +303,21 @@ class TurboCharge_Main {
     }
 
     /**
+     * Enqueue admin styles
+     */
+    public function enqueue_admin_assets($hook) {
+        if ($hook !== 'settings_page_shypdr-settings') {
+            return;
+        }
+        wp_enqueue_style('shypdr-admin', SHYPDR_URL . 'assets/css/admin-styles.css', [], SHYPDR_VERSION);
+    }
+
+    /**
      * Render settings page
      */
     public function render_settings_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied', 'turbo-charge' ) );
+            wp_die( esc_html__( 'Access denied', 'samybaxy-hyperdrive' ) );
         }
 
         // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab parameter for display only, no action taken
@@ -322,34 +333,34 @@ class TurboCharge_Main {
             return;
         }
 
-        $enabled = get_option('tc_enabled', false);
-        $debug_enabled = get_option('tc_debug_enabled', false);
-        $logs = get_transient('tc_logs') ?: [];
-        $mu_loader_active = tc_is_mu_loader_active();
+        $enabled = get_option('shypdr_enabled', false);
+        $debug_enabled = get_option('shypdr_debug_enabled', false);
+        $logs = get_transient('shypdr_logs') ?: [];
+        $mu_loader_active = shypdr_is_mu_loader_active();
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Turbo Charge Settings', 'turbo-charge' ); ?></h1>
+            <h1><?php esc_html_e( 'Samybaxy Hyperdrive Settings', 'samybaxy-hyperdrive' ); ?></h1>
 
             <?php
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only notice, no action taken
-            if ( isset( $_GET['tc_logs_cleared'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['tc_logs_cleared'] ) ) ) : ?>
+            if ( isset( $_GET['shypdr_logs_cleared'] ) && '1' === sanitize_text_field( wp_unslash( $_GET['shypdr_logs_cleared'] ) ) ) : ?>
                 <div class="notice notice-success is-dismissible">
-                    <p><strong><?php esc_html_e( 'Success!', 'turbo-charge' ); ?></strong> <?php esc_html_e( 'Performance logs have been cleared.', 'turbo-charge' ); ?></p>
+                    <p><strong><?php esc_html_e( 'Success!', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( 'Performance logs have been cleared.', 'samybaxy-hyperdrive' ); ?></p>
                 </div>
             <?php endif; ?>
 
             <?php
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only notice, no action taken
-            if ( isset( $_GET['tc_cache_rebuilt'] ) ) : ?>
+            if ( isset( $_GET['shypdr_cache_rebuilt'] ) ) : ?>
                 <div class="notice notice-success is-dismissible">
-                    <p><strong><?php esc_html_e( 'Success!', 'turbo-charge' ); ?></strong>
+                    <p><strong><?php esc_html_e( 'Success!', 'samybaxy-hyperdrive' ); ?></strong>
                     <?php
                     // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only notice, no action taken
-                    $pages_count = intval( sanitize_text_field( wp_unslash( $_GET['tc_cache_rebuilt'] ) ) );
+                    $pages_count = intval( sanitize_text_field( wp_unslash( $_GET['shypdr_cache_rebuilt'] ) ) );
                     printf(
                         /* translators: %d: number of pages analyzed */
-                        esc_html__( 'Requirements cache rebuilt. Analyzed %d pages.', 'turbo-charge' ),
+                        esc_html__( 'Requirements cache rebuilt. Analyzed %d pages.', 'samybaxy-hyperdrive' ),
                         absint( $pages_count )
                     );
                     ?></p>
@@ -360,24 +371,24 @@ class TurboCharge_Main {
             <div style="background: <?php echo esc_attr( $mu_loader_active ? '#d4edda' : '#f8d7da' ); ?>; padding: 20px; margin: 20px 0; border-left: 4px solid <?php echo esc_attr( $mu_loader_active ? '#28a745' : '#dc3545' ); ?>; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
                 <h2 style="margin-top: 0;">
                     <?php if ( $mu_loader_active ) : ?>
-                        <?php esc_html_e( 'MU-Loader Active - Real Filtering Enabled', 'turbo-charge' ); ?>
+                        <?php esc_html_e( 'MU-Loader Active - Real Filtering Enabled', 'samybaxy-hyperdrive' ); ?>
                     <?php else : ?>
-                        <?php esc_html_e( 'MU-Loader Not Installed - Filtering Won\'t Work', 'turbo-charge' ); ?>
+                        <?php esc_html_e( 'MU-Loader Not Installed - Filtering Won\'t Work', 'samybaxy-hyperdrive' ); ?>
                     <?php endif; ?>
                 </h2>
                 <?php if ( $mu_loader_active ) : ?>
                     <p style="color: #155724; margin-bottom: 0;">
-                        <?php esc_html_e( 'The MU-loader is installed and filtering plugins before they load. This is the correct setup for actual performance gains.', 'turbo-charge' ); ?>
+                        <?php esc_html_e( 'The MU-loader is installed and filtering plugins before they load. This is the correct setup for actual performance gains.', 'samybaxy-hyperdrive' ); ?>
                     </p>
                 <?php else : ?>
                     <p style="color: #721c24;">
-                        <strong><?php esc_html_e( 'Without the MU-loader, plugin filtering cannot work.', 'turbo-charge' ); ?></strong>
-                        <?php esc_html_e( 'Regular plugins load too late to filter out other plugins.', 'turbo-charge' ); ?>
+                        <strong><?php esc_html_e( 'Without the MU-loader, plugin filtering cannot work.', 'samybaxy-hyperdrive' ); ?></strong>
+                        <?php esc_html_e( 'Regular plugins load too late to filter out other plugins.', 'samybaxy-hyperdrive' ); ?>
                     </p>
                     <p>
-                        <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=tc-settings&tc_install_mu=1' ), 'tc_install_mu' ) ); ?>"
+                        <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=shypdr-settings&shypdr_install_mu=1' ), 'shypdr_install_mu' ) ); ?>"
                            class="button button-primary">
-                            <?php esc_html_e( 'Install MU-Loader Now', 'turbo-charge' ); ?>
+                            <?php esc_html_e( 'Install MU-Loader Now', 'samybaxy-hyperdrive' ); ?>
                         </a>
                     </p>
                 <?php endif; ?>
@@ -386,81 +397,81 @@ class TurboCharge_Main {
             <!-- Scanner & Dependencies Section -->
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0;">
                 <div style="background: white; padding: 20px; border-left: 4px solid #667eea; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Intelligent Plugin Scanner', 'turbo-charge' ); ?></h2>
-                    <p><?php esc_html_e( 'Use AI-powered heuristics to automatically detect which plugins are essential for your site. The scanner analyzes all active plugins and categorizes them as critical, conditional, or optional.', 'turbo-charge' ); ?></p>
-                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=tc-settings&tab=scanner' ) ); ?>" class="button button-primary button-large">
-                        <?php esc_html_e( 'Manage Essential Plugins', 'turbo-charge' ); ?>
+                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Intelligent Plugin Scanner', 'samybaxy-hyperdrive' ); ?></h2>
+                    <p><?php esc_html_e( 'Use AI-powered heuristics to automatically detect which plugins are essential for your site. The scanner analyzes all active plugins and categorizes them as critical, conditional, or optional.', 'samybaxy-hyperdrive' ); ?></p>
+                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=shypdr-settings&tab=scanner' ) ); ?>" class="button button-primary button-large">
+                        <?php esc_html_e( 'Manage Essential Plugins', 'samybaxy-hyperdrive' ); ?>
                     </a>
                 </div>
 
                 <div style="background: white; padding: 20px; border-left: 4px solid #28a745; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Plugin Dependencies', 'turbo-charge' ); ?></h2>
-                    <p><?php esc_html_e( 'View automatically detected plugin dependencies. Dependencies are discovered by analyzing plugin headers, code patterns, and ecosystem relationships.', 'turbo-charge' ); ?></p>
-                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=tc-settings&tab=dependencies' ) ); ?>" class="button button-secondary button-large">
-                        <?php esc_html_e( 'View Dependency Map', 'turbo-charge' ); ?>
+                    <h2 style="margin-top: 0;"><?php esc_html_e( 'Plugin Dependencies', 'samybaxy-hyperdrive' ); ?></h2>
+                    <p><?php esc_html_e( 'View automatically detected plugin dependencies. Dependencies are discovered by analyzing plugin headers, code patterns, and ecosystem relationships.', 'samybaxy-hyperdrive' ); ?></p>
+                    <a href="<?php echo esc_url( admin_url( 'options-general.php?page=shypdr-settings&tab=dependencies' ) ); ?>" class="button button-secondary button-large">
+                        <?php esc_html_e( 'View Dependency Map', 'samybaxy-hyperdrive' ); ?>
                     </a>
                 </div>
             </div>
 
             <!-- Smart Content Detection -->
             <?php
-            $cache_stats = TurboCharge_Requirements_Cache::get_stats();
+            $cache_stats = SHYPDR_Requirements_Cache::get_stats();
             ?>
             <div style="background: white; padding: 20px; margin: 20px 0; border-left: 4px solid #17a2b8; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                <h2 style="margin-top: 0;"><?php esc_html_e( 'Smart Content Detection', 'turbo-charge' ); ?></h2>
-                <p><?php esc_html_e( 'Analyzes page content (shortcodes, Elementor widgets, Gutenberg blocks) to detect which plugins each page needs. This enables O(1) lookup for maximum performance.', 'turbo-charge' ); ?></p>
+                <h2 style="margin-top: 0;"><?php esc_html_e( 'Smart Content Detection', 'samybaxy-hyperdrive' ); ?></h2>
+                <p><?php esc_html_e( 'Analyzes page content (shortcodes, Elementor widgets, Gutenberg blocks) to detect which plugins each page needs. This enables O(1) lookup for maximum performance.', 'samybaxy-hyperdrive' ); ?></p>
                 <div style="display: flex; gap: 15px; align-items: center; margin: 15px 0;">
                     <form method="post" style="display: inline;">
-                        <input type="hidden" name="tc_action" value="rebuild_cache" />
-                        <?php wp_nonce_field( 'tc_rebuild_cache_action', 'tc_rebuild_cache_nonce' ); ?>
-                        <button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'This will analyze all published pages. Continue?', 'turbo-charge' ) ); ?>');">
-                            <?php esc_html_e( 'Rebuild Requirements Cache', 'turbo-charge' ); ?>
+                        <input type="hidden" name="shypdr_action" value="rebuild_cache" />
+                        <?php wp_nonce_field( 'shypdr_rebuild_cache_action', 'shypdr_rebuild_cache_nonce' ); ?>
+                        <button type="submit" class="button button-secondary" onclick="return confirm('<?php echo esc_js( __( 'This will analyze all published pages. Continue?', 'samybaxy-hyperdrive' ) ); ?>');">
+                            <?php esc_html_e( 'Rebuild Requirements Cache', 'samybaxy-hyperdrive' ); ?>
                         </button>
                     </form>
                     <span style="color: #666; font-size: 13px;">
                         <?php
                         printf(
                             /* translators: 1: number of pages cached, 2: cache size in KB */
-                            esc_html__( '%1$s pages cached (%2$s KB)', 'turbo-charge' ),
+                            esc_html__( '%1$s pages cached (%2$s KB)', 'samybaxy-hyperdrive' ),
                             '<strong>' . esc_html( $cache_stats['total_entries'] ) . '</strong>',
                             esc_html( $cache_stats['size_kb'] )
                         );
                         ?>
                     </span>
                 </div>
-                <p class="description"><?php esc_html_e( 'Run this after bulk content changes or when conditional loading isn\'t working correctly.', 'turbo-charge' ); ?></p>
+                <p class="description"><?php esc_html_e( 'Run this after bulk content changes or when conditional loading isn\'t working correctly.', 'samybaxy-hyperdrive' ); ?></p>
             </div>
 
             <form method="post" action="options.php">
-                <?php settings_fields( 'tc_settings' ); ?>
+                <?php settings_fields( 'shypdr_settings' ); ?>
                 <table class="form-table">
                     <tr>
                         <th scope="row">
-                            <label for="tc_enabled"><?php esc_html_e( 'Enable Plugin Filtering', 'turbo-charge' ); ?></label>
+                            <label for="shypdr_enabled"><?php esc_html_e( 'Enable Plugin Filtering', 'samybaxy-hyperdrive' ); ?></label>
                         </th>
                         <td>
-                            <input type="checkbox" id="tc_enabled" name="tc_enabled" value="1"
+                            <input type="checkbox" id="shypdr_enabled" name="shypdr_enabled" value="1"
                                 <?php checked( $enabled ); ?>
                                 <?php echo ! $mu_loader_active ? 'style="opacity: 0.5;"' : ''; ?> />
                             <?php if ( ! $mu_loader_active ) : ?>
-                                <span style="color: #dc3545; font-weight: bold;"><?php esc_html_e( 'Install MU-Loader first!', 'turbo-charge' ); ?></span>
+                                <span style="color: #dc3545; font-weight: bold;"><?php esc_html_e( 'Install MU-Loader first!', 'samybaxy-hyperdrive' ); ?></span>
                             <?php endif; ?>
                             <p class="description">
-                                <?php esc_html_e( 'When enabled, loads only essential plugins per page for better performance.', 'turbo-charge' ); ?>
+                                <?php esc_html_e( 'When enabled, loads only essential plugins per page for better performance.', 'samybaxy-hyperdrive' ); ?>
                                 <?php if ( ! $mu_loader_active ) : ?>
-                                    <br><strong style="color: #dc3545;"><?php esc_html_e( 'Requires MU-Loader to actually work.', 'turbo-charge' ); ?></strong>
+                                    <br><strong style="color: #dc3545;"><?php esc_html_e( 'Requires MU-Loader to actually work.', 'samybaxy-hyperdrive' ); ?></strong>
                                 <?php endif; ?>
                             </p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row">
-                            <label for="tc_debug_enabled"><?php esc_html_e( 'Enable Debug Widget', 'turbo-charge' ); ?></label>
+                            <label for="shypdr_debug_enabled"><?php esc_html_e( 'Enable Debug Widget', 'samybaxy-hyperdrive' ); ?></label>
                         </th>
                         <td>
-                            <input type="checkbox" id="tc_debug_enabled" name="tc_debug_enabled" value="1"
+                            <input type="checkbox" id="shypdr_debug_enabled" name="shypdr_debug_enabled" value="1"
                                 <?php checked( $debug_enabled ); ?> />
-                            <p class="description"><?php esc_html_e( 'Show floating debug widget on frontend with performance stats (admins only).', 'turbo-charge' ); ?></p>
+                            <p class="description"><?php esc_html_e( 'Show floating debug widget on frontend with performance stats (admins only).', 'samybaxy-hyperdrive' ); ?></p>
                         </td>
                     </tr>
                 </table>
@@ -469,13 +480,13 @@ class TurboCharge_Main {
 
             <?php if ( ! empty( $logs ) ) : ?>
                 <hr>
-                <h2><?php esc_html_e( 'Recent Performance Logs', 'turbo-charge' ); ?></h2>
+                <h2><?php esc_html_e( 'Recent Performance Logs', 'samybaxy-hyperdrive' ); ?></h2>
                 <p class="description">
-                    <?php esc_html_e( 'These logs show which plugins were loaded on each page request.', 'turbo-charge' ); ?>
+                    <?php esc_html_e( 'These logs show which plugins were loaded on each page request.', 'samybaxy-hyperdrive' ); ?>
                     <?php if ( $mu_loader_active ) : ?>
-                        <span style="color: #28a745;"><?php esc_html_e( 'Using MU-loader for real filtering', 'turbo-charge' ); ?></span>
+                        <span style="color: #28a745;"><?php esc_html_e( 'Using MU-loader for real filtering', 'samybaxy-hyperdrive' ); ?></span>
                     <?php else : ?>
-                        <span style="color: #dc3545;"><?php esc_html_e( 'Logs show intended filtering, not actual (MU-loader not installed)', 'turbo-charge' ); ?></span>
+                        <span style="color: #dc3545;"><?php esc_html_e( 'Logs show intended filtering, not actual (MU-loader not installed)', 'samybaxy-hyperdrive' ); ?></span>
                     <?php endif; ?>
                 </p>
                 <table class="wp-list-table widefat fixed striped">
@@ -532,8 +543,8 @@ class TurboCharge_Main {
 
                 <div style="margin-top: 20px; padding: 15px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
                     <form method="post" style="display: inline;">
-                        <input type="hidden" name="tc_action" value="clear_logs" />
-                        <?php wp_nonce_field('tc_clear_logs_action', 'tc_clear_logs_nonce'); ?>
+                        <input type="hidden" name="shypdr_action" value="clear_logs" />
+                        <?php wp_nonce_field('shypdr_clear_logs_action', 'shypdr_clear_logs_nonce'); ?>
                         <button type="submit" class="button button-secondary" onclick="return confirm('Are you sure you want to clear all performance logs?');">
                             Clear Performance Logs
                         </button>
@@ -549,10 +560,10 @@ class TurboCharge_Main {
             <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
                 <h3>Technical Information</h3>
                 <ul>
-                    <li><strong>Plugin Version:</strong> <?php echo esc_html(TC_VERSION); ?></li>
-                    <li><strong>MU-Loader:</strong> <?php echo $mu_loader_active ? '✅ Active (v' . esc_html(TC_MU_LOADER_VERSION) . ')' : '❌ Not Installed'; ?></li>
+                    <li><strong>Plugin Version:</strong> <?php echo esc_html(SHYPDR_VERSION); ?></li>
+                    <li><strong>MU-Loader:</strong> <?php echo $mu_loader_active ? '✅ Active (v' . esc_html(SHYPDR_MU_LOADER_VERSION) . ')' : '❌ Not Installed'; ?></li>
                     <li><strong>Total Active Plugins:</strong> <?php echo count(get_option('active_plugins', [])); ?></li>
-                    <li><strong>Essential Plugins Configured:</strong> <?php echo count(get_option('tc_essential_plugins', [])); ?></li>
+                    <li><strong>Essential Plugins Configured:</strong> <?php echo count(get_option('shypdr_essential_plugins', [])); ?></li>
                     <li><strong>Object Cache:</strong> <?php echo wp_using_ext_object_cache() ? '✅ Active (Redis/Memcached)' : '❌ Not Available'; ?></li>
                 </ul>
             </div>
@@ -568,8 +579,8 @@ class TurboCharge_Main {
             return;
         }
 
-        wp_enqueue_style('tc-debug', TC_URL . 'assets/css/debug-widget.css', [], TC_VERSION);
-        wp_enqueue_script('tc-debug', TC_URL . 'assets/js/debug-widget.js', [], TC_VERSION, true);
+        wp_enqueue_style('shypdr-debug', SHYPDR_URL . 'assets/css/debug-widget.css', [], SHYPDR_VERSION);
+        wp_enqueue_script('shypdr-debug', SHYPDR_URL . 'assets/js/debug-widget.js', [], SHYPDR_VERSION, true);
     }
 
     /**
@@ -577,47 +588,47 @@ class TurboCharge_Main {
      */
     public function render_essential_plugins_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied', 'turbo-charge' ) );
+            wp_die( esc_html__( 'Access denied', 'samybaxy-hyperdrive' ) );
         }
 
         // Handle form submission
-        if (isset($_POST['tc_save_essential']) && check_admin_referer('tc_essential_plugins', 'tc_essential_nonce')) {
-            $essential_plugins = isset($_POST['tc_essential']) ? array_map('sanitize_text_field', wp_unslash($_POST['tc_essential'])) : [];
-            update_option('tc_essential_plugins', $essential_plugins);
+        if (isset($_POST['shypdr_save_essential']) && check_admin_referer('shypdr_essential_plugins', 'shypdr_essential_nonce')) {
+            $essential_plugins = isset($_POST['shypdr_essential']) ? array_map('sanitize_text_field', wp_unslash($_POST['shypdr_essential'])) : [];
+            update_option('shypdr_essential_plugins', $essential_plugins);
 
             self::$essential_plugins_cache = null;
-            TurboCharge_Detection_Cache::clear_all_caches();
+            SHYPDR_Detection_Cache::clear_all_caches();
 
             echo '<div class="notice notice-success is-dismissible"><p><strong>Essential plugins updated successfully!</strong></p></div>';
         }
 
         // Handle rescan
-        if (isset($_POST['tc_rescan']) && check_admin_referer('tc_rescan_plugins', 'tc_rescan_nonce')) {
-            TurboCharge_Plugin_Scanner::clear_cache();
-            $analysis = TurboCharge_Plugin_Scanner::scan_active_plugins();
-            update_option('tc_plugin_analysis', $analysis);
+        if (isset($_POST['shypdr_rescan']) && check_admin_referer('shypdr_rescan_plugins', 'shypdr_rescan_nonce')) {
+            SHYPDR_Plugin_Scanner::clear_cache();
+            $analysis = SHYPDR_Plugin_Scanner::scan_active_plugins();
+            update_option('shypdr_plugin_analysis', $analysis);
 
-            TurboCharge_Plugin_Scanner::get_essential_plugins(true);
+            SHYPDR_Plugin_Scanner::get_essential_plugins(true);
 
             self::$essential_plugins_cache = null;
-            TurboCharge_Detection_Cache::clear_all_caches();
+            SHYPDR_Detection_Cache::clear_all_caches();
 
             echo '<div class="notice notice-success is-dismissible"><p><strong>Plugin scan completed!</strong> Found ' . count($analysis['critical']) . ' critical plugins and automatically marked them as essential.</p></div>';
         }
 
-        $analysis = get_option('tc_plugin_analysis', false);
+        $analysis = get_option('shypdr_plugin_analysis', false);
         if ($analysis === false) {
-            $analysis = TurboCharge_Plugin_Scanner::scan_active_plugins();
+            $analysis = SHYPDR_Plugin_Scanner::scan_active_plugins();
         }
 
-        $current_essential = get_option('tc_essential_plugins', []);
-        $cache_stats = TurboCharge_Detection_Cache::get_cache_stats();
+        $current_essential = get_option('shypdr_essential_plugins', []);
+        $cache_stats = SHYPDR_Detection_Cache::get_cache_stats();
 
         ?>
         <div class="wrap">
-            <h1>Turbo Charge - Essential Plugins</h1>
+            <h1>Samybaxy Hyperdrive - Essential Plugins</h1>
 
-            <a href="<?php echo esc_url(admin_url('options-general.php?page=tc-settings')); ?>" class="button button-secondary" style="margin-bottom: 15px;">
+            <a href="<?php echo esc_url(admin_url('options-general.php?page=shypdr-settings')); ?>" class="button button-secondary" style="margin-bottom: 15px;">
                 ← Back to Settings
             </a>
 
@@ -658,12 +669,12 @@ class TurboCharge_Main {
                     </div>
                     <div style="padding: 15px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px;">
                         <h3 style="margin: 0 0 5px 0; color: #856404;">Conditional</h3>
-                        <div style="font-size: 24px; font-weight: bold; color: #856404;" id="tc-conditional-count"><?php echo esc_html($conditional_count); ?></div>
+                        <div style="font-size: 24px; font-weight: bold; color: #856404;" id="shypdr-conditional-count"><?php echo esc_html($conditional_count); ?></div>
                         <small>Load based on page detection</small>
                     </div>
                     <div style="padding: 15px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px;">
                         <h3 style="margin: 0 0 5px 0; color: #0c5460;">Filtered</h3>
-                        <div style="font-size: 24px; font-weight: bold; color: #0c5460;" id="tc-filtered-count"><?php echo esc_html($filtered_count); ?></div>
+                        <div style="font-size: 24px; font-weight: bold; color: #0c5460;" id="shypdr-filtered-count"><?php echo esc_html($filtered_count); ?></div>
                         <small>Filtered unless detected</small>
                     </div>
                 </div>
@@ -671,15 +682,15 @@ class TurboCharge_Main {
                 <details style="margin: 15px 0;">
                     <summary style="cursor: pointer; color: #666; font-size: 13px;">Scanner categorization (for reference)</summary>
                     <div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 3px;">
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Critical (score ≥80):</strong> <?php echo count($analysis['critical']); ?> plugins</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Critical (score ≥ 80):</strong> <?php echo count($analysis['critical']); ?> plugins</p>
                         <p style="margin: 5px 0; font-size: 13px;"><strong>Conditional (score 40-79):</strong> <?php echo count($analysis['conditional']); ?> plugins</p>
-                        <p style="margin: 5px 0; font-size: 13px;"><strong>Optional (score <40):</strong> <?php echo count($analysis['optional']); ?> plugins</p>
+                        <p style="margin: 5px 0; font-size: 13px;"><strong>Optional (score < 40):</strong> <?php echo count($analysis['optional']); ?> plugins</p>
                     </div>
                 </details>
 
                 <form method="post" style="display: inline;">
-                    <?php wp_nonce_field('tc_rescan_plugins', 'tc_rescan_nonce'); ?>
-                    <button type="submit" name="tc_rescan" class="button button-secondary">
+                    <?php wp_nonce_field('shypdr_rescan_plugins', 'shypdr_rescan_nonce'); ?>
+                    <button type="submit" name="shypdr_rescan" class="button button-secondary">
                         🔍 Rescan All Plugins
                     </button>
                 </form>
@@ -687,25 +698,10 @@ class TurboCharge_Main {
             </div>
 
             <form method="post">
-                <?php wp_nonce_field('tc_essential_plugins', 'tc_essential_nonce'); ?>
+                <?php wp_nonce_field('shypdr_essential_plugins', 'shypdr_essential_nonce'); ?>
 
                 <h2>Select Essential Plugins</h2>
                 <p>Check the plugins that should <strong>always load</strong> on every page:</p>
-
-                <style>
-                    .tc-plugin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; margin: 20px 0; }
-                    .tc-plugin-card { padding: 15px; background: white; border: 1px solid #ccd0d4; border-radius: 4px; }
-                    .tc-plugin-card.critical { border-left: 4px solid #28a745; }
-                    .tc-plugin-card.conditional { border-left: 4px solid #ffc107; }
-                    .tc-plugin-card.optional { border-left: 4px solid #17a2b8; }
-                    .tc-plugin-name { font-weight: bold; margin-bottom: 5px; }
-                    .tc-plugin-score { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; }
-                    .tc-plugin-score.critical { background: #d4edda; color: #155724; }
-                    .tc-plugin-score.conditional { background: #fff3cd; color: #856404; }
-                    .tc-plugin-score.optional { background: #d1ecf1; color: #0c5460; }
-                    .tc-plugin-desc { font-size: 13px; color: #666; margin: 5px 0; }
-                    .tc-plugin-reasons { font-size: 12px; color: #999; margin-top: 5px; }
-                </style>
 
                 <?php
                 foreach (['critical' => 'Critical Plugins', 'conditional' => 'Conditional Plugins', 'optional' => 'Optional Plugins'] as $category_key => $category_label):
@@ -713,25 +709,25 @@ class TurboCharge_Main {
                     if (empty($plugins_in_category)) continue;
                 ?>
                     <h3><?php echo esc_html($category_label); ?> (<?php echo count($plugins_in_category); ?>)</h3>
-                    <div class="tc-plugin-list">
+                    <div class="shypdr-plugin-list">
                         <?php foreach ($plugins_in_category as $plugin): ?>
-                            <div class="tc-plugin-card <?php echo esc_attr($plugin['category']); ?>">
+                            <div class="shypdr-plugin-card <?php echo esc_attr($plugin['category']); ?>">
                                 <label style="display: flex; align-items: start; cursor: pointer;">
                                     <input type="checkbox"
-                                           name="tc_essential[]"
+                                           name="shypdr_essential[]"
                                            value="<?php echo esc_attr($plugin['slug']); ?>"
                                            <?php checked(in_array($plugin['slug'], $current_essential)); ?>
                                            style="margin: 4px 10px 0 0;">
                                     <div style="flex: 1;">
-                                        <div class="tc-plugin-name">
+                                        <div class="shypdr-plugin-name">
                                             <?php echo esc_html($plugin['name']); ?>
-                                            <span class="tc-plugin-score <?php echo esc_attr($plugin['category']); ?>">
+                                            <span class="shypdr-plugin-score <?php echo esc_attr($plugin['category']); ?>">
                                                 Score: <?php echo esc_html($plugin['score']); ?>
                                             </span>
                                         </div>
-                                        <div class="tc-plugin-desc"><?php echo esc_html($plugin['description']); ?></div>
+                                        <div class="shypdr-plugin-desc"><?php echo esc_html($plugin['description']); ?></div>
                                         <?php if (!empty($plugin['reasons'])): ?>
-                                            <div class="tc-plugin-reasons">
+                                            <div class="shypdr-plugin-reasons">
                                                 📊 <?php echo esc_html(implode(' • ', array_slice($plugin['reasons'], 0, 2))); ?>
                                             </div>
                                         <?php endif; ?>
@@ -743,10 +739,10 @@ class TurboCharge_Main {
                 <?php endforeach; ?>
 
                 <p class="submit">
-                    <button type="submit" name="tc_save_essential" class="button button-primary button-hero">
+                    <button type="submit" name="shypdr_save_essential" class="button button-primary button-hero">
                         💾 Save Essential Plugins
                     </button>
-                    <a href="<?php echo esc_url(admin_url('options-general.php?page=tc-settings')); ?>" class="button button-secondary button-hero" style="margin-left: 10px;">
+                    <a href="<?php echo esc_url(admin_url('options-general.php?page=shypdr-settings')); ?>" class="button button-secondary button-hero" style="margin-left: 10px;">
                         ← Back to Settings
                     </a>
                 </p>
@@ -773,50 +769,50 @@ class TurboCharge_Main {
             return;
         }
 
-        $mu_data = tc_get_mu_filter_data();
-        $mu_loader_active = tc_is_mu_loader_active();
+        $mu_data = shypdr_get_mu_filter_data();
+        $mu_loader_active = shypdr_is_mu_loader_active();
 
         ?>
-        <div id="tc-debug-widget" class="tc-debug-widget">
-            <div class="tc-debug-toggle">
-                <span class="tc-debug-title">⚡ Turbo Charge</span>
+        <div id="shypdr-debug-widget" class="shypdr-debug-widget">
+            <div class="shypdr-debug-toggle">
+                <span class="shypdr-debug-title">⚡ Hyperdrive</span>
             </div>
-            <div class="tc-debug-content">
+            <div class="shypdr-debug-content">
                 <?php if ($mu_loader_active && $mu_data): ?>
-                    <div class="tc-debug-stat" style="background: #d4edda; padding: 5px; border-radius: 3px; margin-bottom: 10px;">
+                    <div class="shypdr-debug-stat" style="background: #d4edda; padding: 5px; border-radius: 3px; margin-bottom: 10px;">
                         <strong>✅ MU-Loader Active</strong>
                     </div>
-                    <div class="tc-debug-stat">
+                    <div class="shypdr-debug-stat">
                         <strong>Total Plugins:</strong> <?php echo esc_html($mu_data['original_count']); ?>
                     </div>
-                    <div class="tc-debug-stat">
+                    <div class="shypdr-debug-stat">
                         <strong>Loaded:</strong> <?php echo esc_html(count($mu_data['loaded_plugins'])); ?>
                     </div>
-                    <div class="tc-debug-stat">
+                    <div class="shypdr-debug-stat">
                         <strong>Filtered:</strong> <?php echo esc_html($mu_data['filtered_count']); ?>
                     </div>
-                    <div class="tc-debug-stat highlight">
+                    <div class="shypdr-debug-stat highlight">
                         <strong>Reduction:</strong> <?php echo esc_html($mu_data['reduction_percent']); ?>%
                     </div>
                     <hr>
-                    <div class="tc-debug-section">
-                        <strong class="tc-section-title">
+                    <div class="shypdr-debug-section">
+                        <strong class="shypdr-section-title">
                             ✓ Loaded Plugins (<?php echo esc_html(count($mu_data['loaded_plugins'])); ?>)
                         </strong>
-                        <div class="tc-plugin-list-scrollable">
+                        <div class="shypdr-plugin-list-scrollable">
                             <ul>
                                 <?php foreach ($mu_data['loaded_plugins'] as $plugin): ?>
-                                    <li><span class="tc-plugin-bullet">•</span> <?php echo esc_html($plugin); ?></li>
+                                    <li><span class="shypdr-plugin-bullet">•</span> <?php echo esc_html($plugin); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                         </div>
                     </div>
                     <hr>
-                    <div class="tc-debug-section">
-                        <strong class="tc-section-title tc-collapsible" onclick="this.parentElement.classList.toggle('expanded')">
+                    <div class="shypdr-debug-section">
+                        <strong class="shypdr-section-title shypdr-collapsible" onclick="this.parentElement.classList.toggle('expanded')">
                             ⊖ Filtered Out (<?php echo esc_html($mu_data['filtered_count']); ?>)
                         </strong>
-                        <div class="tc-plugin-list-scrollable tc-collapsible-content">
+                        <div class="shypdr-plugin-list-scrollable shypdr-collapsible-content">
                             <ul>
                                 <?php
                                 $all_plugins = !empty($mu_data['original_plugins']) ? $mu_data['original_plugins'] : [];
@@ -825,7 +821,7 @@ class TurboCharge_Main {
                                 foreach ($all_plugins as $plugin_path):
                                     if (!in_array($plugin_path, $loaded_plugins, true)):
                                 ?>
-                                    <li><span class="tc-plugin-bullet">•</span> <?php echo esc_html($plugin_path); ?></li>
+                                    <li><span class="shypdr-plugin-bullet">•</span> <?php echo esc_html($plugin_path); ?></li>
                                 <?php
                                     endif;
                                 endforeach;
@@ -834,11 +830,11 @@ class TurboCharge_Main {
                         </div>
                     </div>
                 <?php else: ?>
-                    <div class="tc-debug-stat" style="background: #f8d7da; padding: 5px; border-radius: 3px; margin-bottom: 10px;">
+                    <div class="shypdr-debug-stat" style="background: #f8d7da; padding: 5px; border-radius: 3px; margin-bottom: 10px;">
                         <strong>⚠️ MU-Loader Not Active</strong>
                     </div>
                     <p style="color: #721c24; font-size: 12px;">
-                        Plugin filtering is not working. Install the MU-Loader from Settings → Turbo Charge.
+                        Plugin filtering is not working. Install the MU-Loader from Settings → Samybaxy Hyperdrive.
                     </p>
                 <?php endif; ?>
             </div>
@@ -851,88 +847,76 @@ class TurboCharge_Main {
      */
     public function render_dependencies_page() {
         if ( ! current_user_can( 'manage_options' ) ) {
-            wp_die( esc_html__( 'Access denied', 'turbo-charge' ) );
+            wp_die( esc_html__( 'Access denied', 'samybaxy-hyperdrive' ) );
         }
 
         // Handle rebuild request
-        if ( isset( $_POST['tc_rebuild_dependencies'] ) && check_admin_referer( 'tc_rebuild_dependencies', 'tc_rebuild_deps_nonce' ) ) {
-            $count = TurboCharge_Dependency_Detector::rebuild_dependency_map();
-            echo '<div class="notice notice-success is-dismissible"><p><strong>' . esc_html__( 'Success!', 'turbo-charge' ) . '</strong> ';
+        if ( isset( $_POST['shypdr_rebuild_dependencies'] ) && check_admin_referer( 'shypdr_rebuild_dependencies', 'shypdr_rebuild_deps_nonce' ) ) {
+            $count = SHYPDR_Dependency_Detector::rebuild_dependency_map();
+            echo '<div class="notice notice-success is-dismissible"><p><strong>' . esc_html__( 'Success!', 'samybaxy-hyperdrive' ) . '</strong> ';
             printf(
                 /* translators: %d: number of plugins analyzed */
-                esc_html__( 'Dependency map rebuilt. Analyzed %d plugins.', 'turbo-charge' ),
+                esc_html__( 'Dependency map rebuilt. Analyzed %d plugins.', 'samybaxy-hyperdrive' ),
                 absint( $count )
             );
             echo '</p></div>';
         }
 
-        $dependency_map = TurboCharge_Dependency_Detector::get_dependency_map();
-        $stats = TurboCharge_Dependency_Detector::get_stats();
+        $dependency_map = SHYPDR_Dependency_Detector::get_dependency_map();
+        $stats = SHYPDR_Dependency_Detector::get_stats();
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Turbo Charge - Plugin Dependencies', 'turbo-charge' ); ?></h1>
+            <h1><?php esc_html_e( 'Samybaxy Hyperdrive - Plugin Dependencies', 'samybaxy-hyperdrive' ); ?></h1>
 
-            <a href="<?php echo esc_url( admin_url( 'options-general.php?page=tc-settings' ) ); ?>" class="button button-secondary" style="margin-bottom: 15px;">
-                <?php esc_html_e( '← Back to Settings', 'turbo-charge' ); ?>
+            <a href="<?php echo esc_url( admin_url( 'options-general.php?page=shypdr-settings' ) ); ?>" class="button button-secondary" style="margin-bottom: 15px;">
+                <?php esc_html_e( '← Back to Settings', 'samybaxy-hyperdrive' ); ?>
             </a>
 
             <div class="notice notice-info">
-                <p><strong><?php esc_html_e( 'About Plugin Dependencies', 'turbo-charge' ); ?></strong></p>
-                <p><?php esc_html_e( 'Dependencies are automatically detected by analyzing plugin headers, code patterns, and ecosystem relationships. When a plugin is loaded, all its dependencies are automatically loaded too.', 'turbo-charge' ); ?></p>
+                <p><strong><?php esc_html_e( 'About Plugin Dependencies', 'samybaxy-hyperdrive' ); ?></strong></p>
+                <p><?php esc_html_e( 'Dependencies are automatically detected by analyzing plugin headers, code patterns, and ecosystem relationships. When a plugin is loaded, all its dependencies are automatically loaded too.', 'samybaxy-hyperdrive' ); ?></p>
             </div>
 
             <!-- Statistics -->
             <div style="background: white; padding: 20px; margin: 20px 0; border: 1px solid #ccd0d4; box-shadow: 0 1px 1px rgba(0,0,0,.04);">
-                <h2><?php esc_html_e( 'Dependency Statistics', 'turbo-charge' ); ?></h2>
+                <h2><?php esc_html_e( 'Dependency Statistics', 'samybaxy-hyperdrive' ); ?></h2>
                 <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0;">
                     <div style="padding: 15px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">
-                        <h3 style="margin: 0 0 5px 0; color: #004085;"><?php esc_html_e( 'Total Plugins', 'turbo-charge' ); ?></h3>
+                        <h3 style="margin: 0 0 5px 0; color: #004085;"><?php esc_html_e( 'Total Plugins', 'samybaxy-hyperdrive' ); ?></h3>
                         <div style="font-size: 24px; font-weight: bold; color: #004085;"><?php echo esc_html( $stats['total_plugins'] ); ?></div>
-                        <small><?php esc_html_e( 'In dependency map', 'turbo-charge' ); ?></small>
+                        <small><?php esc_html_e( 'In dependency map', 'samybaxy-hyperdrive' ); ?></small>
                     </div>
                     <div style="padding: 15px; background: #fff3cd; border: 1px solid #ffeeba; border-radius: 4px;">
-                        <h3 style="margin: 0 0 5px 0; color: #856404;"><?php esc_html_e( 'With Dependencies', 'turbo-charge' ); ?></h3>
+                        <h3 style="margin: 0 0 5px 0; color: #856404;"><?php esc_html_e( 'With Dependencies', 'samybaxy-hyperdrive' ); ?></h3>
                         <div style="font-size: 24px; font-weight: bold; color: #856404;"><?php echo esc_html( $stats['plugins_with_dependencies'] ); ?></div>
-                        <small><?php esc_html_e( 'Plugins requiring others', 'turbo-charge' ); ?></small>
+                        <small><?php esc_html_e( 'Plugins requiring others', 'samybaxy-hyperdrive' ); ?></small>
                     </div>
                     <div style="padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 4px;">
-                        <h3 style="margin: 0 0 5px 0; color: #155724;"><?php esc_html_e( 'Relationships', 'turbo-charge' ); ?></h3>
+                        <h3 style="margin: 0 0 5px 0; color: #155724;"><?php esc_html_e( 'Relationships', 'samybaxy-hyperdrive' ); ?></h3>
                         <div style="font-size: 24px; font-weight: bold; color: #155724;"><?php echo esc_html( $stats['total_dependency_relationships'] ); ?></div>
-                        <small><?php esc_html_e( 'Total dependencies', 'turbo-charge' ); ?></small>
+                        <small><?php esc_html_e( 'Total dependencies', 'samybaxy-hyperdrive' ); ?></small>
                     </div>
                 </div>
 
                 <form method="post" style="margin-top: 20px;">
-                    <?php wp_nonce_field( 'tc_rebuild_dependencies', 'tc_rebuild_deps_nonce' ); ?>
-                    <button type="submit" name="tc_rebuild_dependencies" class="button button-primary" onclick="return confirm('<?php echo esc_js( __( 'Rebuild dependency map? This will scan all active plugins.', 'turbo-charge' ) ); ?>');">
-                        <?php esc_html_e( '🔄 Rebuild Dependency Map', 'turbo-charge' ); ?>
+                    <?php wp_nonce_field( 'shypdr_rebuild_dependencies', 'shypdr_rebuild_deps_nonce' ); ?>
+                    <button type="submit" name="shypdr_rebuild_dependencies" class="button button-primary" onclick="return confirm('<?php echo esc_js( __( 'Rebuild dependency map? This will scan all active plugins.', 'samybaxy-hyperdrive' ) ); ?>');">
+                        <?php esc_html_e( '🔄 Rebuild Dependency Map', 'samybaxy-hyperdrive' ); ?>
                     </button>
-                    <small style="margin-left: 10px; color: #666;"><?php esc_html_e( 'Detection method: Heuristic scanning (plugin headers, code analysis, patterns)', 'turbo-charge' ); ?></small>
+                    <small style="margin-left: 10px; color: #666;"><?php esc_html_e( 'Detection method: Heuristic scanning (plugin headers, code analysis, patterns)', 'samybaxy-hyperdrive' ); ?></small>
                 </form>
             </div>
 
             <!-- Dependency List -->
-            <h2><?php esc_html_e( 'Plugin Dependency Map', 'turbo-charge' ); ?></h2>
+            <h2><?php esc_html_e( 'Plugin Dependency Map', 'samybaxy-hyperdrive' ); ?></h2>
 
-            <style>
-                .tc-dep-table { width: 100%; border-collapse: collapse; background: white; }
-                .tc-dep-table th { background: #f0f0f0; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-weight: 600; }
-                .tc-dep-table td { padding: 10px; border-bottom: 1px solid #e0e0e0; }
-                .tc-dep-table tr:hover { background: #f9f9f9; }
-                .tc-dep-badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: bold; margin: 2px; }
-                .tc-dep-badge.depends { background: #fff3cd; color: #856404; }
-                .tc-dep-badge.required { background: #d4edda; color: #155724; }
-                .tc-dep-badge.none { background: #e2e3e5; color: #6c757d; }
-                .tc-plugin-name { font-weight: 600; color: #0073aa; }
-            </style>
-
-            <table class="tc-dep-table">
+            <table class="shypdr-dep-table">
                 <thead>
                     <tr>
-                        <th style="width: 25%;"><?php esc_html_e( 'Plugin', 'turbo-charge' ); ?></th>
-                        <th style="width: 35%;"><?php esc_html_e( 'Depends On', 'turbo-charge' ); ?></th>
-                        <th style="width: 35%;"><?php esc_html_e( 'Required By', 'turbo-charge' ); ?></th>
+                        <th style="width: 25%;"><?php esc_html_e( 'Plugin', 'samybaxy-hyperdrive' ); ?></th>
+                        <th style="width: 35%;"><?php esc_html_e( 'Depends On', 'samybaxy-hyperdrive' ); ?></th>
+                        <th style="width: 35%;"><?php esc_html_e( 'Required By', 'samybaxy-hyperdrive' ); ?></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -944,24 +928,24 @@ class TurboCharge_Main {
                         ?>
                         <tr>
                             <td>
-                                <span class="tc-plugin-name"><?php echo esc_html( $plugin_slug ); ?></span>
+                                <span class="shypdr-plugin-name"><?php echo esc_html( $plugin_slug ); ?></span>
                             </td>
                             <td>
                                 <?php if ( ! empty( $depends_on ) ) : ?>
                                     <?php foreach ( $depends_on as $dep ) : ?>
-                                        <span class="tc-dep-badge depends"><?php echo esc_html( $dep ); ?></span>
+                                        <span class="shypdr-dep-badge depends"><?php echo esc_html( $dep ); ?></span>
                                     <?php endforeach; ?>
                                 <?php else : ?>
-                                    <span class="tc-dep-badge none"><?php esc_html_e( 'None', 'turbo-charge' ); ?></span>
+                                    <span class="shypdr-dep-badge none"><?php esc_html_e( 'None', 'samybaxy-hyperdrive' ); ?></span>
                                 <?php endif; ?>
                             </td>
                             <td>
                                 <?php if ( ! empty( $required_by ) ) : ?>
                                     <?php foreach ( $required_by as $req ) : ?>
-                                        <span class="tc-dep-badge required"><?php echo esc_html( $req ); ?></span>
+                                        <span class="shypdr-dep-badge required"><?php echo esc_html( $req ); ?></span>
                                     <?php endforeach; ?>
                                 <?php else : ?>
-                                    <span class="tc-dep-badge none"><?php esc_html_e( 'None', 'turbo-charge' ); ?></span>
+                                    <span class="shypdr-dep-badge none"><?php esc_html_e( 'None', 'samybaxy-hyperdrive' ); ?></span>
                                 <?php endif; ?>
                             </td>
                         </tr>
@@ -970,14 +954,14 @@ class TurboCharge_Main {
             </table>
 
             <div style="margin-top: 30px; padding: 20px; background: #f9f9f9; border: 1px solid #ddd; border-radius: 4px;">
-                <h3><?php esc_html_e( 'How Dependencies Are Detected', 'turbo-charge' ); ?></h3>
+                <h3><?php esc_html_e( 'How Dependencies Are Detected', 'samybaxy-hyperdrive' ); ?></h3>
                 <ul>
-                    <li><strong><?php esc_html_e( 'WordPress 6.5+ Headers:', 'turbo-charge' ); ?></strong> <?php esc_html_e( 'Reads "Requires Plugins" header from plugin files', 'turbo-charge' ); ?></li>
-                    <li><strong><?php esc_html_e( 'Code Analysis:', 'turbo-charge' ); ?></strong> <?php esc_html_e( 'Detects class_exists(), defined() checks for parent plugins', 'turbo-charge' ); ?></li>
-                    <li><strong><?php esc_html_e( 'Naming Patterns:', 'turbo-charge' ); ?></strong> <?php esc_html_e( '"jet-*" depends on "jet-engine", "woocommerce-*" depends on "woocommerce"', 'turbo-charge' ); ?></li>
-                    <li><strong><?php esc_html_e( 'Known Ecosystems:', 'turbo-charge' ); ?></strong> <?php esc_html_e( 'Built-in knowledge of major plugin families (Elementor, WooCommerce, LearnPress, etc.)', 'turbo-charge' ); ?></li>
+                    <li><strong><?php esc_html_e( 'WordPress 6.5+ Headers:', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( 'Reads "Requires Plugins" header from plugin files', 'samybaxy-hyperdrive' ); ?></li>
+                    <li><strong><?php esc_html_e( 'Code Analysis:', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( 'Detects class_exists(), defined() checks for parent plugins', 'samybaxy-hyperdrive' ); ?></li>
+                    <li><strong><?php esc_html_e( 'Naming Patterns:', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( '"jet-*" depends on "jet-engine", "woocommerce-*" depends on "woocommerce"', 'samybaxy-hyperdrive' ); ?></li>
+                    <li><strong><?php esc_html_e( 'Known Ecosystems:', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( 'Built-in knowledge of major plugin families (Elementor, WooCommerce, LearnPress, etc.)', 'samybaxy-hyperdrive' ); ?></li>
                 </ul>
-                <p><strong><?php esc_html_e( 'Filter Hook:', 'turbo-charge' ); ?></strong> <?php esc_html_e( 'Developers can customize dependencies using the', 'turbo-charge' ); ?> <code>tc_dependency_map</code> <?php esc_html_e( 'filter.', 'turbo-charge' ); ?></p>
+                <p><strong><?php esc_html_e( 'Filter Hook:', 'samybaxy-hyperdrive' ); ?></strong> <?php esc_html_e( 'Developers can customize dependencies using the', 'samybaxy-hyperdrive' ); ?> <code>shypdr_dependency_map</code> <?php esc_html_e( 'filter.', 'samybaxy-hyperdrive' ); ?></p>
             </div>
         </div>
         <?php

@@ -1,0 +1,273 @@
+/**
+ * Samybaxy Hyperdrive - Admin Styles
+ *
+ * @package SamybaxyHyperdrive
+ */
+
+/* Plugin List Grid */
+.shypdr-plugin-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 15px;
+    margin: 15px 0;
+}
+
+/* Plugin Card */
+.shypdr-plugin-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 12px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shypdr-plugin-card:hover {
+    border-color: #2271b1;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.shypdr-plugin-card.critical {
+    border-left: 3px solid #d63638;
+}
+
+.shypdr-plugin-card.conditional {
+    border-left: 3px solid #dba617;
+}
+
+.shypdr-plugin-card.optional {
+    border-left: 3px solid #72aee6;
+}
+
+/* Plugin Name */
+.shypdr-plugin-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1d2327;
+    margin-bottom: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Plugin Score Badge */
+.shypdr-plugin-score {
+    font-size: 11px;
+    font-weight: normal;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #f0f0f1;
+    color: #50575e;
+}
+
+.shypdr-plugin-score.critical {
+    background: #fcf0f1;
+    color: #d63638;
+}
+
+.shypdr-plugin-score.conditional {
+    background: #fcf9e8;
+    color: #996800;
+}
+
+.shypdr-plugin-score.optional {
+    background: #f0f6fc;
+    color: #2271b1;
+}
+
+/* Plugin Description */
+.shypdr-plugin-desc {
+    color: #646970;
+    font-size: 13px;
+    line-height: 1.4;
+    margin: 5px 0;
+}
+
+/* Plugin Analysis Reasons */
+.shypdr-plugin-reasons {
+    font-size: 11px;
+    color: #8c8f94;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e0e0e0;
+}
+
+/* Conditional/Filtered Count Badges */
+.shypdr-conditional-count,
+.shypdr-filtered-count {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.shypdr-conditional-count {
+    background: #fcf9e8;
+    color: #996800;
+}
+
+.shypdr-filtered-count {
+    background: #edf8ee;
+    color: #1e7320;
+}
+
+/* Dependency Table */
+.shypdr-dep-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    background: #fff;
+}
+
+.shypdr-dep-table th,
+.shypdr-dep-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.shypdr-dep-table th {
+    background: #f6f7f7;
+    font-weight: 600;
+    color: #1d2327;
+    font-size: 13px;
+}
+
+.shypdr-dep-table tr:hover td {
+    background: #f9f9f9;
+}
+
+.shypdr-dep-table td:first-child {
+    font-weight: 500;
+}
+
+/* Dependency Badges */
+.shypdr-dep-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin: 2px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.shypdr-dep-badge.depends {
+    background: #e7f3ff;
+    color: #0073aa;
+    border: 1px solid #c3e0f7;
+}
+
+.shypdr-dep-badge.required {
+    background: #f0fff0;
+    color: #1e7320;
+    border: 1px solid #c3e6cb;
+}
+
+.shypdr-dep-badge.none {
+    background: #f6f7f7;
+    color: #8c8f94;
+    font-style: italic;
+}
+
+/* Scrollable Plugin List (used in debug widget & settings) */
+.shypdr-plugin-list-scrollable {
+    max-height: 200px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 8px;
+    background: #fafafa;
+    border-radius: 3px;
+    border: 1px solid #eee;
+}
+
+.shypdr-plugin-list-scrollable ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.shypdr-plugin-list-scrollable li {
+    color: #555;
+    margin: 4px 0;
+    font-size: 12px;
+    word-break: break-word;
+    line-height: 1.4;
+    padding: 2px 4px;
+}
+
+.shypdr-plugin-bullet {
+    color: #667eea;
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+/* Collapsible Sections */
+.shypdr-collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+.shypdr-collapsible-content {
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.shypdr-debug-section:not(.expanded) .shypdr-collapsible-content {
+    display: none;
+}
+
+/* Section Titles */
+.shypdr-section-title {
+    display: block;
+    color: #1d2327;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.shypdr-section-title.shypdr-collapsible:hover {
+    color: #2271b1;
+}
+
+/* Settings Page Layout */
+.wrap .shypdr-settings-section {
+    background: #fff;
+    border: 1px solid #c3c4c7;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 15px 0;
+}
+
+.wrap .shypdr-settings-section h2 {
+    margin-top: 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+/* Status Indicators */
+.shypdr-status-enabled {
+    color: #00a32a;
+}
+
+.shypdr-status-disabled {
+    color: #d63638;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 782px) {
+    .shypdr-plugin-list {
+        grid-template-columns: 1fr;
+    }
+
+    .shypdr-dep-table th,
+    .shypdr-dep-table td {
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+
+    .shypdr-plugin-name {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}

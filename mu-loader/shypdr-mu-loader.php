@@ -1,6 +1,6 @@
 <?php
 /**
- * Turbo Charge - MU-Plugin Loader (High Performance Edition)
+ * Samybaxy Hyperdrive - MU-Plugin Loader (High Performance Edition)
  *
  * This file MUST be placed in wp-content/mu-plugins/ to work.
  * It intercepts plugin loading BEFORE WordPress loads regular plugins.
@@ -12,8 +12,8 @@
  * - Minimal processing before WordPress loads
  * - Intelligent media plugin detection for rich content pages
  *
- * @package TurboCharge
- * @version 5.3.0
+ * @package SamybaxyHyperdrive
+ * @version 6.0.0
  */
 
 // Prevent direct access
@@ -22,9 +22,9 @@ if (!defined('ABSPATH')) {
 }
 
 // Define constants FIRST so main plugin knows MU-loader is installed
-if (!defined('TC_MU_LOADER_ACTIVE')) {
-    define('TC_MU_LOADER_ACTIVE', true);
-    define('TC_MU_LOADER_VERSION', '5.3.0');
+if (!defined('SHYPDR_MU_LOADER_ACTIVE')) {
+    define('SHYPDR_MU_LOADER_ACTIVE', true);
+    define('SHYPDR_MU_LOADER_VERSION', '6.0.0');
 }
 
 // CRITICAL: Never filter on admin, AJAX, REST, CRON, CLI
@@ -51,33 +51,33 @@ if (defined('WP_CLI') && WP_CLI) {
 
 // Fast URI checks for admin paths (string operations only, no regex)
 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Read-only early detection, no actions performed
-$tc_request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
-if (strpos($tc_request_uri, '/wp-admin') !== false ||
-    strpos($tc_request_uri, '/wp-login') !== false ||
-    strpos($tc_request_uri, 'wp-activate.php') !== false ||
-    strpos($tc_request_uri, 'wp-signup.php') !== false ||
-    strpos($tc_request_uri, 'xmlrpc.php') !== false) {
+$shypdr_request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
+if (strpos($shypdr_request_uri, '/wp-admin') !== false ||
+    strpos($shypdr_request_uri, '/wp-login') !== false ||
+    strpos($shypdr_request_uri, 'wp-activate.php') !== false ||
+    strpos($shypdr_request_uri, 'wp-signup.php') !== false ||
+    strpos($shypdr_request_uri, 'xmlrpc.php') !== false) {
     return;
 }
 
 // Fast action parameter check
 // phpcs:ignore WordPress.Security.NonceVerification -- Read-only early detection, prevents plugin loading conflicts
-$tc_action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : (isset($_POST['action']) ? sanitize_key(wp_unslash($_POST['action'])) : '');
-if ($tc_action && in_array($tc_action, ['activate', 'deactivate', 'activate-selected', 'deactivate-selected'], true)) {
+$shypdr_action = isset($_GET['action']) ? sanitize_key(wp_unslash($_GET['action'])) : (isset($_POST['action']) ? sanitize_key(wp_unslash($_POST['action'])) : '');
+if ($shypdr_action && in_array($shypdr_action, ['activate', 'deactivate', 'activate-selected', 'deactivate-selected'], true)) {
     return;
 }
 
 // Check if filtering is enabled (single DB query)
 global $wpdb;
 // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
-$tc_enabled = $wpdb->get_var(
+$shypdr_enabled = $wpdb->get_var(
     $wpdb->prepare(
         "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-        'tc_enabled'
+        'shypdr_enabled'
     )
 );
 
-if ( '1' !== $tc_enabled ) {
+if ( '1' !== $shypdr_enabled ) {
     return;
 }
 
@@ -92,7 +92,7 @@ if ( '1' !== $tc_enabled ) {
  *
  * Total: O(m) per request, which is optimal since we must iterate plugins anyway
  */
-class TC_Early_Filter {
+class SHYPDR_Early_Filter {
 
     private static $filtered = false;
     private static $original_count = 0;
@@ -159,8 +159,8 @@ class TC_Early_Filter {
                 self::$detected_plugins
             ));
 
-            // Always include turbo-charge
-            $required_slugs[] = 'turbo-charge';
+            // Always include samybaxy-hyperdrive
+            $required_slugs[] = 'samybaxy-hyperdrive';
 
             // Step 4: Resolve dependencies (O(k) where k = required plugins)
             $to_load = self::resolve_dependencies($required_slugs, $plugins);
@@ -205,7 +205,7 @@ class TC_Early_Filter {
         $essential = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                'tc_essential_plugins'
+                'shypdr_essential_plugins'
             )
         );
 
@@ -450,7 +450,7 @@ class TC_Early_Filter {
         $result = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                'tc_url_requirements'
+                'shypdr_url_requirements'
             )
         );
 
@@ -709,7 +709,7 @@ class TC_Early_Filter {
      * Store filter data for main plugin
      */
     public static function store_filter_data() {
-        $GLOBALS['tc_mu_filter_data'] = [
+        $GLOBALS['shypdr_mu_filter_data'] = [
             'filtered' => self::$filtered,
             'original_count' => self::$original_count,
             'filtered_count' => self::$filtered_count,
@@ -742,4 +742,4 @@ class TC_Early_Filter {
 }
 
 // Initialize early filtering
-TC_Early_Filter::init();
+SHYPDR_Early_Filter::init();

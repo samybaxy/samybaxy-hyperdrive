@@ -1,6 +1,6 @@
 <?php
 /**
- * Dependency Detector for Turbo Charge
+ * Dependency Detector for Samybaxy Hyperdrive
  *
  * Intelligently detects plugin dependencies using:
  * - WordPress 6.5+ "Requires Plugins" header
@@ -8,19 +8,19 @@
  * - Known plugin ecosystem relationships
  * - Heuristic-based implicit dependency detection
  *
- * @package TurboCharge
+ * @package SamybaxyHyperdrive
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
     exit;
 }
 
-class TurboCharge_Dependency_Detector {
+class SHYPDR_Dependency_Detector {
 
     /**
      * Option name for storing dependency map
      */
-    const DEPENDENCY_MAP_OPTION = 'tc_dependency_map';
+    const DEPENDENCY_MAP_OPTION = 'shypdr_dependency_map';
 
     /**
      * Known ecosystem patterns for fallback/validation
@@ -55,7 +55,7 @@ class TurboCharge_Dependency_Detector {
         }
 
         // Allow filtering for custom dependencies
-        $map = apply_filters( 'tc_dependency_map', $map );
+        $map = apply_filters( 'shypdr_dependency_map', $map );
 
         $cached_map = $map;
         return $map;

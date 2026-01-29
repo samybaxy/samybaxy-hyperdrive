@@ -1,6 +1,6 @@
 <?php
 /**
- * High-Performance Requirements Cache for Turbo Charge
+ * High-Performance Requirements Cache for Samybaxy Hyperdrive
  *
  * This class maintains a pre-computed lookup table for plugin requirements.
  * All analysis happens on post save, so runtime lookups are O(1).
@@ -8,24 +8,24 @@
  * The lookup table is stored as a single serialized option for fast retrieval.
  * The MU-loader does ONE database query and ONE hash lookup per request.
  *
- * @package TurboCharge
+ * @package SamybaxyHyperdrive
  */
 
 if (!defined('ABSPATH')) {
     exit;
 }
 
-class TurboCharge_Requirements_Cache {
+class SHYPDR_Requirements_Cache {
 
     /**
      * Option name for the lookup table
      */
-    const LOOKUP_TABLE_OPTION = 'tc_url_requirements';
+    const LOOKUP_TABLE_OPTION = 'shypdr_url_requirements';
 
     /**
      * Option name for post type requirements
      */
-    const POST_TYPE_OPTION = 'tc_post_type_requirements';
+    const POST_TYPE_OPTION = 'shypdr_post_type_requirements';
 
     /**
      * Get the full lookup table (for MU-loader to fetch once per request)
@@ -63,11 +63,11 @@ class TurboCharge_Requirements_Cache {
         }
 
         // Analyze the post
-        if (!class_exists('TurboCharge_Content_Analyzer')) {
+        if (!class_exists('SHYPDR_Content_Analyzer')) {
             require_once dirname(__FILE__) . '/class-content-analyzer.php';
         }
 
-        $required = TurboCharge_Content_Analyzer::analyze_post($post_id);
+        $required = SHYPDR_Content_Analyzer::analyze_post($post_id);
 
         // Update the lookup table atomically
         $table = get_option(self::LOOKUP_TABLE_OPTION, []);
@@ -130,7 +130,7 @@ class TurboCharge_Requirements_Cache {
     public static function rebuild_lookup_table() {
         global $wpdb;
 
-        if (!class_exists('TurboCharge_Content_Analyzer')) {
+        if (!class_exists('SHYPDR_Content_Analyzer')) {
             require_once dirname(__FILE__) . '/class-content-analyzer.php';
         }
 
@@ -151,7 +151,7 @@ class TurboCharge_Requirements_Cache {
         );
 
         foreach ($posts as $post_data) {
-            $required = TurboCharge_Content_Analyzer::analyze_post($post_data['ID']);
+            $required = SHYPDR_Content_Analyzer::analyze_post($post_data['ID']);
 
             if (!empty($required)) {
                 $table[$post_data['post_name']] = $required;

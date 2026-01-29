@@ -1,10 +1,10 @@
-=== Turbo Charge ===
+=== Samybaxy Hyperdrive ===
 Contributors: samybaxy
-Donate link: https://github.com/samybaxy/turbo-charge/blob/main/DONATE.md
+Donate link: https://github.com/samybaxy/samybaxy-hyperdrive/blob/main/DONATE.md
 Tags: performance, optimization, speed, caching, conditional-loading
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 5.1.0
+Stable tag: 6.0.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -14,9 +14,9 @@ Load only essential plugins per page for 65-75% faster WordPress sites through i
 == Description ==
 
 **Status:** Production Ready
-**Current Version:** 5.1.0
+**Current Version:** 6.0.0
 
-Turbo Charge makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
+Samybaxy Hyperdrive makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
 
 Instead of loading 120 plugins for every page, we load only 12-45 plugins for the current page - automatically, without breaking anything.
 
@@ -37,10 +37,10 @@ Traditional WordPress loads ALL plugins on EVERY page:
 * Blog page loads: WooCommerce, LearnPress, Forms, Analytics, SEO... (120 plugins)
 * Result: Slow sites (3-8 seconds TTFB)
 
-**Turbo Charge intelligently filters plugins:**
+**Samybaxy Hyperdrive intelligently filters plugins:**
 * Shop page loads: WooCommerce + dependencies only (35 plugins)
 * Blog page loads: Blog plugins + dependencies only (18 plugins)
-* Result: **65-75% faster!** ⚡
+* Result: **65-75% faster!**
 
 = Intelligent Detection System =
 
@@ -95,10 +95,10 @@ The plugin now automatically detects plugin dependencies using 4 intelligent met
 4. **Known Ecosystems** - Validates with curated plugin relationships
 
 **Benefits:**
-* ✅ Zero manual maintenance - dependencies auto-detected
-* ✅ Works with custom/proprietary plugins automatically
-* ✅ Auto-rebuilds on plugin activation/deactivation
-* ✅ Database storage for fast retrieval
+* Zero manual maintenance - dependencies auto-detected
+* Works with custom/proprietary plugins automatically
+* Auto-rebuilds on plugin activation/deactivation
+* Database storage for fast retrieval
 
 = What's New in v5.0 =
 
@@ -114,13 +114,13 @@ Automatically analyzes all plugins and scores them 0-100 based on:
 **Detection Result Caching** - 60-75% Faster Filtering
 
 Dual-layer caching system:
-* **Requirements Cache** - Pre-computed URL → plugins mapping
+* **Requirements Cache** - Pre-computed URL to plugins mapping
 * **Detection Cache** - Runtime caching with object cache support
 * **Performance:** 0.3-0.8ms cached (vs 1.2-2.1ms uncached)
 
 = Admin Interface =
 
-Settings page at **Settings → Turbo Charge** with:
+Settings page at **Settings > Samybaxy Hyperdrive** with:
 * Enable/disable plugin filtering checkbox
 * Enable/disable debug widget checkbox
 * Intelligent plugin scanner with visual cards
@@ -158,10 +158,10 @@ Typical performance improvements:
 
 = Automatic Installation =
 
-1. Upload the plugin files to `/wp-content/plugins/turbo-charge/` directory
-2. Go to WordPress Admin → Plugins
-3. Find "Turbo Charge" and click "Activate"
-4. Go to Settings → Turbo Charge
+1. Upload the plugin files to `/wp-content/plugins/samybaxy-hyperdrive/` directory
+2. Go to WordPress Admin > Plugins
+3. Find "Samybaxy Hyperdrive" and click "Activate"
+4. Go to Settings > Samybaxy Hyperdrive
 5. Check "Enable Plugin Filtering"
 6. Save changes
 
@@ -171,21 +171,21 @@ That's it! The plugin works automatically with zero configuration.
 
 For best performance, install the MU-loader:
 
-1. After activating the plugin, go to Settings → Turbo Charge
+1. After activating the plugin, go to Settings > Samybaxy Hyperdrive
 2. Click "Install MU-Loader Now" button (if prompted)
 3. The MU-loader will be automatically installed
 4. This enables filtering BEFORE WordPress loads plugins
 
 Alternatively, manually copy:
-* From: `wp-content/plugins/turbo-charge/mu-loader/tc-mu-loader.php`
-* To: `wp-content/mu-plugins/tc-mu-loader.php`
+* From: `wp-content/plugins/samybaxy-hyperdrive/mu-loader/shypdr-mu-loader.php`
+* To: `wp-content/mu-plugins/shypdr-mu-loader.php`
 
 = Manual Installation =
 
 1. Download the plugin files
-2. Extract to `/wp-content/plugins/turbo-charge/`
-3. Activate from WordPress Admin → Plugins
-4. Enable filtering in Settings → Turbo Charge
+2. Extract to `/wp-content/plugins/samybaxy-hyperdrive/`
+3. Activate from WordPress Admin > Plugins
+4. Enable filtering in Settings > Samybaxy Hyperdrive
 
 == Frequently Asked Questions ==
 
@@ -203,7 +203,7 @@ Yes! Elementor + Pro + all add-ons are fully supported.
 
 = What if plugins break? =
 
-The system automatically detects issues and loads all plugins as a fallback. You can also disable filtering temporarily from Settings → Turbo Charge.
+The system automatically detects issues and loads all plugins as a fallback. You can also disable filtering temporarily from Settings > Samybaxy Hyperdrive.
 
 = Does it require configuration? =
 
@@ -215,7 +215,7 @@ Admin always loads all plugins (safe by design). Filtering only happens on front
 
 = Can I disable it temporarily? =
 
-Yes, go to Settings → Turbo Charge and uncheck "Enable Plugin Filtering".
+Yes, go to Settings > Samybaxy Hyperdrive and uncheck "Enable Plugin Filtering".
 
 = Does it work with caching plugins? =
 
@@ -239,11 +239,11 @@ Yes. The plugin understands dependencies, won't break functionality, and has aut
 
 = Can I customize which plugins are essential? =
 
-Yes! Go to Settings → Turbo Charge → Essential Plugins tab to customize via the admin UI.
+Yes! Go to Settings > Samybaxy Hyperdrive > Essential Plugins tab to customize via the admin UI.
 
 = How do I debug if something breaks? =
 
-1. Go to Settings → Turbo Charge
+1. Go to Settings > Samybaxy Hyperdrive
 2. Check "Recent Performance Logs" to see which plugins were loaded
 3. Enable "Debug Widget" to see real-time stats on frontend (admin only)
 4. Temporarily disable filtering to verify it's the cause
@@ -261,6 +261,17 @@ Yes, the plugin supports WordPress multisite installations.
 5. Performance logs table with detailed plugin lists
 
 == Changelog ==
+
+= 6.0.0 - January 29, 2026 =
+* BREAKING: Complete plugin rename from "Turbo Charge" to "Samybaxy Hyperdrive"
+* BREAKING: Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
+* BREAKING: All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
+* BREAKING: MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
+* NEW: Extracted inline CSS to separate admin-styles.css file
+* IMPROVED: WordPress.org plugin review compliance
+* IMPROVED: All database options, transients, and post meta use new prefix
+* IMPROVED: All CSS classes use new shypdr- prefix
+* NOTE: Fresh installation required - settings from previous versions will not migrate
 
 = 5.1.0 - December 14, 2025 =
 * NEW: Heuristic Dependency Detection System
@@ -322,6 +333,9 @@ Yes, the plugin supports WordPress multisite installations.
 
 == Upgrade Notice ==
 
+= 6.0.0 =
+BREAKING CHANGE: Complete plugin rename to "Samybaxy Hyperdrive". Fresh installation required - settings from "Turbo Charge" will not migrate. Please reconfigure after upgrade.
+
 = 5.1.0 =
 Major update with automatic dependency detection! No more manual maintenance. Upgrade immediately for zero-config dependency management.
 
@@ -353,14 +367,14 @@ Production-ready release with improved stability and error handling. Safe to upg
 
 = Database Options =
 
-All options use `tc_` prefix (trademark-compliant):
-* `tc_enabled` - Enable/disable plugin filtering
-* `tc_debug_enabled` - Enable/disable debug widget
-* `tc_essential_plugins` - User-customized essential plugins
-* `tc_dependency_map` - Auto-detected plugin dependencies
-* `tc_plugin_analysis` - Cached scanner results
-* `tc_url_requirements` - Pre-computed URL lookups
-* `tc_logs` (transient) - Performance logs
+All options use `shypdr_` prefix:
+* `shypdr_enabled` - Enable/disable plugin filtering
+* `shypdr_debug_enabled` - Enable/disable debug widget
+* `shypdr_essential_plugins` - User-customized essential plugins
+* `shypdr_dependency_map` - Auto-detected plugin dependencies
+* `shypdr_plugin_analysis` - Cached scanner results
+* `shypdr_url_requirements` - Pre-computed URL lookups
+* `shypdr_logs` (transient) - Performance logs
 
 = WordPress Hooks =
 
@@ -376,16 +390,16 @@ All options use `tc_` prefix (trademark-compliant):
 
 = Filter Hooks for Developers =
 
-* `tc_essential_plugins` - Override essential plugins
-* `tc_dependency_map` - Override dependency map
-* `tc_url_detected_plugins` - Customize URL detection
-* `tc_content_detected_plugins` - Customize content detection
+* `shypdr_essential_plugins` - Override essential plugins
+* `shypdr_dependency_map` - Override dependency map
+* `shypdr_url_detected_plugins` - Customize URL detection
+* `shypdr_content_detected_plugins` - Customize content detection
 
 = Support =
 
 For support and documentation:
-* GitHub: https://github.com/samybaxy/turbo-charge
-* Settings → Turbo Charge - View performance logs
+* GitHub: https://github.com/samybaxy/samybaxy-hyperdrive
+* Settings > Samybaxy Hyperdrive - View performance logs
 * Enable debug widget for real-time monitoring
 
 == Credits ==
