@@ -1,6 +1,6 @@
 <?php
 /**
- * Content Analyzer for Samybaxy Hyperdrive
+ * Content Analyzer for Samybaxy's Hyperdrive
  *
  * Intelligently detects which plugins are required for each page by analyzing:
  * - Post content (shortcodes, blocks)

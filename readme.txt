@@ -1,4 +1,4 @@
-=== Samybaxy Hyperdrive ===
+=== Samybaxy's Hyperdrive ===
 Contributors: samybaxy
 Donate link: https://github.com/samybaxy/samybaxy-hyperdrive/blob/main/DONATE.md
 Tags: performance, optimization, speed, caching, conditional-loading
@@ -16,7 +16,7 @@ Load only essential plugins per page for 65-75% faster WordPress sites through i
 **Status:** Production Ready
 **Current Version:** 6.0.0
 
-Samybaxy Hyperdrive makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
+Samybaxy's Hyperdrive makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
 
 Instead of loading 120 plugins for every page, we load only 12-45 plugins for the current page - automatically, without breaking anything.
 
@@ -37,7 +37,7 @@ Traditional WordPress loads ALL plugins on EVERY page:
 * Blog page loads: WooCommerce, LearnPress, Forms, Analytics, SEO... (120 plugins)
 * Result: Slow sites (3-8 seconds TTFB)
 
-**Samybaxy Hyperdrive intelligently filters plugins:**
+**Samybaxy's Hyperdrive intelligently filters plugins:**
 * Shop page loads: WooCommerce + dependencies only (35 plugins)
 * Blog page loads: Blog plugins + dependencies only (18 plugins)
 * Result: **65-75% faster!**
@@ -120,7 +120,7 @@ Dual-layer caching system:
 
 = Admin Interface =
 
-Settings page at **Settings > Samybaxy Hyperdrive** with:
+Settings page at **Settings > Samybaxy's Hyperdrive** with:
 * Enable/disable plugin filtering checkbox
 * Enable/disable debug widget checkbox
 * Intelligent plugin scanner with visual cards
@@ -160,8 +160,8 @@ Typical performance improvements:
 
 1. Upload the plugin files to `/wp-content/plugins/samybaxy-hyperdrive/` directory
 2. Go to WordPress Admin > Plugins
-3. Find "Samybaxy Hyperdrive" and click "Activate"
-4. Go to Settings > Samybaxy Hyperdrive
+3. Find "Samybaxy's Hyperdrive" and click "Activate"
+4. Go to Settings > Samybaxy's Hyperdrive
 5. Check "Enable Plugin Filtering"
 6. Save changes
 
@@ -171,7 +171,7 @@ That's it! The plugin works automatically with zero configuration.
 
 For best performance, install the MU-loader:
 
-1. After activating the plugin, go to Settings > Samybaxy Hyperdrive
+1. After activating the plugin, go to Settings > Samybaxy's Hyperdrive
 2. Click "Install MU-Loader Now" button (if prompted)
 3. The MU-loader will be automatically installed
 4. This enables filtering BEFORE WordPress loads plugins
@@ -185,7 +185,7 @@ Alternatively, manually copy:
 1. Download the plugin files
 2. Extract to `/wp-content/plugins/samybaxy-hyperdrive/`
 3. Activate from WordPress Admin > Plugins
-4. Enable filtering in Settings > Samybaxy Hyperdrive
+4. Enable filtering in Settings > Samybaxy's Hyperdrive
 
 == Frequently Asked Questions ==
 
@@ -203,7 +203,7 @@ Yes! Elementor + Pro + all add-ons are fully supported.
 
 = What if plugins break? =
 
-The system automatically detects issues and loads all plugins as a fallback. You can also disable filtering temporarily from Settings > Samybaxy Hyperdrive.
+The system automatically detects issues and loads all plugins as a fallback. You can also disable filtering temporarily from Settings > Samybaxy's Hyperdrive.
 
 = Does it require configuration? =
 
@@ -215,7 +215,7 @@ Admin always loads all plugins (safe by design). Filtering only happens on front
 
 = Can I disable it temporarily? =
 
-Yes, go to Settings > Samybaxy Hyperdrive and uncheck "Enable Plugin Filtering".
+Yes, go to Settings > Samybaxy's Hyperdrive and uncheck "Enable Plugin Filtering".
 
 = Does it work with caching plugins? =
 
@@ -239,11 +239,11 @@ Yes. The plugin understands dependencies, won't break functionality, and has aut
 
 = Can I customize which plugins are essential? =
 
-Yes! Go to Settings > Samybaxy Hyperdrive > Essential Plugins tab to customize via the admin UI.
+Yes! Go to Settings > Samybaxy's Hyperdrive > Essential Plugins tab to customize via the admin UI.
 
 = How do I debug if something breaks? =
 
-1. Go to Settings > Samybaxy Hyperdrive
+1. Go to Settings > Samybaxy's Hyperdrive
 2. Check "Recent Performance Logs" to see which plugins were loaded
 3. Enable "Debug Widget" to see real-time stats on frontend (admin only)
 4. Temporarily disable filtering to verify it's the cause
@@ -263,7 +263,7 @@ Yes, the plugin supports WordPress multisite installations.
 == Changelog ==
 
 = 6.0.0 - January 29, 2026 =
-* BREAKING: Complete plugin rename from "Turbo Charge" to "Samybaxy Hyperdrive"
+* BREAKING: Complete plugin rename from "Turbo Charge" to "Samybaxy's Hyperdrive"
 * BREAKING: Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
 * BREAKING: All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
 * BREAKING: MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
@@ -334,7 +334,7 @@ Yes, the plugin supports WordPress multisite installations.
 == Upgrade Notice ==
 
 = 6.0.0 =
-BREAKING CHANGE: Complete plugin rename to "Samybaxy Hyperdrive". Fresh installation required - settings from "Turbo Charge" will not migrate. Please reconfigure after upgrade.
+BREAKING CHANGE: Complete plugin rename to "Samybaxy's Hyperdrive". Fresh installation required - settings from "Turbo Charge" will not migrate. Please reconfigure after upgrade.
 
 = 5.1.0 =
 Major update with automatic dependency detection! No more manual maintenance. Upgrade immediately for zero-config dependency management.
@@ -399,7 +399,7 @@ All options use `shypdr_` prefix:
 
 For support and documentation:
 * GitHub: https://github.com/samybaxy/samybaxy-hyperdrive
-* Settings > Samybaxy Hyperdrive - View performance logs
+* Settings > Samybaxy's Hyperdrive - View performance logs
 * Enable debug widget for real-time monitoring
 
 == Credits ==

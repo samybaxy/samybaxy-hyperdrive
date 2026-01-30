@@ -1,6 +1,6 @@
 <?php
 /**
- * Samybaxy Hyperdrive - MU-Plugin Loader (High Performance Edition)
+ * Samybaxy's Hyperdrive - MU-Plugin Loader (High Performance Edition)
  *
  * This file MUST be placed in wp-content/mu-plugins/ to work.
  * It intercepts plugin loading BEFORE WordPress loads regular plugins.

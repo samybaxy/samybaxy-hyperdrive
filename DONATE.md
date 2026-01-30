@@ -1,6 +1,6 @@
-# Support Samybaxy Hyperdrive Development
+# Support Samybaxy's Hyperdrive Development
 
-Thank you for using **Samybaxy Hyperdrive**! If this plugin has helped speed up your WordPress site and you'd like to support continued development, donations are greatly appreciated.
+Thank you for using **Samybaxy's Hyperdrive**! If this plugin has helped speed up your WordPress site and you'd like to support continued development, donations are greatly appreciated.
 
 ## Cryptocurrency Donations
 
@@ -28,7 +28,7 @@ T9z5MjQogjmui248r38Dd6ddZ98F1wBpVk
 
 ## Thank You!
 
-Your support helps maintain and improve Samybaxy Hyperdrive, making WordPress faster for everyone.
+Your support helps maintain and improve Samybaxy's Hyperdrive, making WordPress faster for everyone.
 
 Every contribution, no matter how small, is deeply appreciated and goes directly toward:
 - Ongoing plugin development and maintenance
@@ -45,6 +45,6 @@ https://github.com/samybaxy/samybaxy-hyperdrive/issues
 
 ---
 
-**Samybaxy Hyperdrive** - Making WordPress sites 65-75% faster through intelligent plugin filtering.
+**Samybaxy's Hyperdrive** - Making WordPress sites 65-75% faster through intelligent plugin filtering.
 
 Version 6.0.0 | GPL v2 or later | [GitHub Repository](https://github.com/samybaxy/samybaxy-hyperdrive)

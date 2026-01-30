@@ -1,5 +1,5 @@
 /**
- * Samybaxy Hyperdrive Debug Widget
+ * Samybaxy's Hyperdrive Debug Widget
  */
 
 (function () {

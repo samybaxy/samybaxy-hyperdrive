@@ -1,6 +1,6 @@
 <?php
 /**
- * Dependency Detector for Samybaxy Hyperdrive
+ * Dependency Detector for Samybaxy's Hyperdrive
  *
  * Intelligently detects plugin dependencies using:
  * - WordPress 6.5+ "Requires Plugins" header

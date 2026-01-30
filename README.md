@@ -1,14 +1,14 @@
-# Samybaxy Hyperdrive
+# Samybaxy's Hyperdrive
 
 **Revolutionary WordPress Performance Plugin**
 
-Transform your WordPress site from sluggish to lightning-fast with intelligent plugin filtering technology. Samybaxy Hyperdrive makes your site **65-75% faster** by loading only the plugins each page actually needs—automatically, without breaking anything.
+Transform your WordPress site from sluggish to lightning-fast with intelligent plugin filtering technology. Samybaxy's Hyperdrive makes your site **65-75% faster** by loading only the plugins each page actually needs—automatically, without breaking anything.
 
-## Why Samybaxy Hyperdrive Changes Everything
+## Why Samybaxy's Hyperdrive Changes Everything
 
 Imagine this: Your WordPress site has 120 plugins installed. Every single page—whether it's a blog post, shop page, or contact form—loads all 120 plugins, even though most pages only need 10-15 of them. This is the WordPress performance bottleneck nobody talks about.
 
-**Samybaxy Hyperdrive solves this.** Instead of loading everything everywhere, it intelligently detects what each page needs and filters out the rest. Your homepage loads 12 plugins. Your shop loads 35. Your blog posts load 18. The result? Pages that load in 1.2 seconds instead of 4.5 seconds. Sites that feel instantly responsive. Visitors who actually stick around.
+**Samybaxy's Hyperdrive solves this.** Instead of loading everything everywhere, it intelligently detects what each page needs and filters out the rest. Your homepage loads 12 plugins. Your shop loads 35. Your blog posts load 18. The result? Pages that load in 1.2 seconds instead of 4.5 seconds. Sites that feel instantly responsive. Visitors who actually stick around.
 
 This isn't just another caching plugin or image optimizer. This is fundamentally rethinking how WordPress loads resources, delivering performance gains that compound with every plugin you have installed.
 
@@ -26,8 +26,8 @@ This isn't just another caching plugin or image optimizer. This is fundamentally
 ### Installation
 1. Plugin is located at `/wp-content/plugins/samybaxy-hyperdrive/`
 2. Go to WordPress Admin → Plugins
-3. Find "Samybaxy Hyperdrive" and click "Activate"
-4. Go to Settings → Samybaxy Hyperdrive to enable filtering
+3. Find "Samybaxy's Hyperdrive" and click "Activate"
+4. Go to Settings → Samybaxy's Hyperdrive to enable filtering
 
 ### Enabling Features
 1. **Enable Plugin Filtering**: Reduces plugin load by 85-90% per page
@@ -72,7 +72,7 @@ The plugin automatically detects which plugins are needed via:
 - **Clean:** No error logging or debug output
 
 ### Admin Interface
-Settings page at **Settings → Samybaxy Hyperdrive** with:
+Settings page at **Settings → Samybaxy's Hyperdrive** with:
 - Enable/disable plugin filtering checkbox
 - Enable/disable debug widget checkbox
 - Performance logs showing recent page loads
@@ -180,7 +180,7 @@ Result: 65-75% faster!
 ## Testing the Plugin
 
 ### Manual Testing
-1. Go to Settings → Samybaxy Hyperdrive
+1. Go to Settings → Samybaxy's Hyperdrive
 2. Check "Enable Plugin Filtering"
 3. Check "Enable Debug Widget"
 4. Save changes
@@ -201,7 +201,7 @@ Result: 65-75% faster!
 - The system falls back to all plugins if < 3 are detected
 
 **Menu broken?**
-- Go to Settings → Samybaxy Hyperdrive
+- Go to Settings → Samybaxy's Hyperdrive
 - Uncheck "Enable Plugin Filtering"
 - Save
 - This disables filtering while you investigate
@@ -283,7 +283,7 @@ Edit the detection methods in `/includes/class-main.php`:
 
 ### v6.0.0 (Current - January 29, 2026)
 **BREAKING CHANGE: Complete Plugin Rename**
-- **BREAKING:** Plugin renamed from "Turbo Charge" to "Samybaxy Hyperdrive"
+- **BREAKING:** Plugin renamed from "Turbo Charge" to "Samybaxy's Hyperdrive"
 - **BREAKING:** Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
 - **BREAKING:** All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
 - **BREAKING:** MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
@@ -379,7 +379,7 @@ The plugin produces **zero error logging** or debug output. It is completely cle
 
 ### Performance Data
 All performance metrics are stored and displayed in:
-- **Settings → Samybaxy Hyperdrive** → "Recent Performance Logs" table
+- **Settings → Samybaxy's Hyperdrive** → "Recent Performance Logs" table
 - Shows: timestamp, URL, plugins loaded, plugins filtered, reduction %
 - Expandable details for each request
 - Clear button to reset logs
@@ -387,7 +387,7 @@ All performance metrics are stored and displayed in:
 ### Debugging Checklist
 
 **If pages are slow:**
-1. Go to Settings → Samybaxy Hyperdrive
+1. Go to Settings → Samybaxy's Hyperdrive
 2. Check "Recent Performance Logs" section
 3. Look for plugins loaded count (should be 20-50, not 100+)
 4. Check reduction % (should be 65%+)
@@ -435,7 +435,7 @@ For developers and technical users:
 For issues or questions:
 - **GitHub:** https://github.com/samybaxy/samybaxy-hyperdrive
 - **DOCUMENTATION.md** - Complete technical documentation with examples (local reference)
-- **Settings → Samybaxy Hyperdrive** - View performance logs and stats
+- **Settings → Samybaxy's Hyperdrive** - View performance logs and stats
 - **Performance data** - Review plugin load details in admin settings page
 - **Debug widget** - Enable to see real-time plugin loading information
 - Disable filtering and test to isolate issues

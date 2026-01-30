@@ -1,6 +1,6 @@
 <?php
 /**
- * Intelligent Plugin Scanner for Samybaxy Hyperdrive
+ * Intelligent Plugin Scanner for Samybaxy's Hyperdrive
  *
  * Analyzes installed plugins using heuristics to determine:
  * - Critical plugins (page builders, theme cores)

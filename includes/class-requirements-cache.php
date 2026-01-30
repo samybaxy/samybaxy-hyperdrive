@@ -1,6 +1,6 @@
 <?php
 /**
- * High-Performance Requirements Cache for Samybaxy Hyperdrive
+ * High-Performance Requirements Cache for Samybaxy's Hyperdrive
  *
  * This class maintains a pre-computed lookup table for plugin requirements.
  * All analysis happens on post save, so runtime lookups are O(1).

@@ -1,6 +1,6 @@
 <?php
 /**
- * Main plugin class for Samybaxy Hyperdrive
+ * Main plugin class for Samybaxy's Hyperdrive
  *
  * @package SamybaxyHyperdrive
  */
@@ -212,7 +212,7 @@ class SHYPDR_Main {
      *     return $map;
      * });
      *
-     * Or use the admin UI: Settings → Samybaxy Hyperdrive → Dependencies
+     * Or use the admin UI: Settings → Samybaxy's Hyperdrive → Dependencies
      */
 
     /**
@@ -278,8 +278,8 @@ class SHYPDR_Main {
      */
     public function register_admin_menu() {
         add_options_page(
-            'Samybaxy Hyperdrive',
-            'Samybaxy Hyperdrive',
+            'Samybaxy\'s Hyperdrive',
+            'Samybaxy\'s Hyperdrive',
             'manage_options',
             'shypdr-settings',
             [$this, 'render_settings_page']
@@ -340,7 +340,7 @@ class SHYPDR_Main {
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Samybaxy Hyperdrive Settings', 'samybaxy-hyperdrive' ); ?></h1>
+            <h1><?php esc_html_e( 'Samybaxy\'s Hyperdrive Settings', 'samybaxy-hyperdrive' ); ?></h1>
 
             <?php
             // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Display-only notice, no action taken
@@ -626,7 +626,7 @@ class SHYPDR_Main {
 
         ?>
         <div class="wrap">
-            <h1>Samybaxy Hyperdrive - Essential Plugins</h1>
+            <h1>Samybaxy's Hyperdrive - Essential Plugins</h1>
 
             <a href="<?php echo esc_url(admin_url('options-general.php?page=shypdr-settings')); ?>" class="button button-secondary" style="margin-bottom: 15px;">
                 ← Back to Settings
@@ -834,7 +834,7 @@ class SHYPDR_Main {
                         <strong>⚠️ MU-Loader Not Active</strong>
                     </div>
                     <p style="color: #721c24; font-size: 12px;">
-                        Plugin filtering is not working. Install the MU-Loader from Settings → Samybaxy Hyperdrive.
+                        Plugin filtering is not working. Install the MU-Loader from Settings → Samybaxy's Hyperdrive.
                     </p>
                 <?php endif; ?>
             </div>
@@ -867,7 +867,7 @@ class SHYPDR_Main {
 
         ?>
         <div class="wrap">
-            <h1><?php esc_html_e( 'Samybaxy Hyperdrive - Plugin Dependencies', 'samybaxy-hyperdrive' ); ?></h1>
+            <h1><?php esc_html_e( 'Samybaxy\'s Hyperdrive - Plugin Dependencies', 'samybaxy-hyperdrive' ); ?></h1>
 
             <a href="<?php echo esc_url( admin_url( 'options-general.php?page=shypdr-settings' ) ); ?>" class="button button-secondary" style="margin-bottom: 15px;">
                 <?php esc_html_e( '← Back to Settings', 'samybaxy-hyperdrive' ); ?>

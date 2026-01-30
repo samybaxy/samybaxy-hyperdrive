@@ -1,6 +1,6 @@
 <?php
 /**
- * Detection Result Caching for Samybaxy Hyperdrive
+ * Detection Result Caching for Samybaxy's Hyperdrive
  *
  * Caches plugin detection results to avoid redundant analysis
  * on repeated URL patterns and post content.

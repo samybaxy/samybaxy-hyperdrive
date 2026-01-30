@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Samybaxy Hyperdrive
+ * Plugin Name: Samybaxy's Hyperdrive
  * Plugin URI: https://github.com/samybaxy/samybaxy-hyperdrive
  * Description: Revolutionary plugin filtering - Load only essential plugins per page. Requires MU-plugin loader for actual performance gains.
  * Version: 6.0.0
@@ -235,7 +235,7 @@ function shypdr_admin_notices() {
     if ( $enabled && ! shypdr_is_mu_loader_active() ) {
         ?>
         <div class="notice notice-error">
-            <p><strong><?php esc_html_e( 'Samybaxy Hyperdrive: MU-Loader Required!', 'samybaxy-hyperdrive' ); ?></strong></p>
+            <p><strong><?php esc_html_e( 'Samybaxy\'s Hyperdrive: MU-Loader Required!', 'samybaxy-hyperdrive' ); ?></strong></p>
             <p><?php esc_html_e( 'Plugin filtering is enabled but the MU-loader is not installed.', 'samybaxy-hyperdrive' ); ?> <strong><?php esc_html_e( 'Without the MU-loader, filtering will NOT work.', 'samybaxy-hyperdrive' ); ?></strong></p>
             <p>
                 <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'options-general.php?page=shypdr-settings&shypdr_install_mu=1' ), 'shypdr_install_mu' ) ); ?>"
