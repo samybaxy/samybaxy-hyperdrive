@@ -418,13 +418,13 @@ For developers and technical users:
 ### Performance & Architecture
 - **DOCUMENTATION.md** - Complete technical reference including:
   - **Plugin Initialization Flow** - Detailed startup sequence and hook registration
-  - **Time Complexity Analysis** - O(n) performance breakdown by component
+  - **Time Complexity Analysis** - O(1) detection, O(m) filtering breakdown by component
   - **Space Complexity Analysis** - Memory usage (~90KB overhead)
   - **Performance Score: 9.2/10** - Comprehensive performance assessment
   - Full ecosystem documentation and detection methods
 
 ### Quick Technical Summary
-- **Time Complexity:** O(n) linear time for filtering
+- **Time Complexity:** O(1) detection with cached lookups, O(m) filtering where m = active plugins
 - **Space Complexity:** O(p + d) - ~90KB memory overhead
 - **Filter Speed:** 1.2-2.1ms typical (target < 2.5ms)
 - **Plugin Reduction:** 85-90% on most pages

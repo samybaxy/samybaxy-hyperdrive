@@ -254,11 +254,13 @@ Yes, the plugin supports WordPress multisite installations.
 
 == Screenshots ==
 
-1. Settings page with enable/disable options and performance logs
-2. Debug widget showing real-time plugin filtering stats (admin only)
-3. Intelligent plugin scanner with visual cards and scores
-4. Dependency map viewer with statistics and relationships
-5. Performance logs table with detailed plugin lists
+1. The main settings page with options to Manage Essential Plugins, Plugin Dependencies, and rebuild cache.
+2. The settings subpage where you can manage your essential plugin list or scan all plugins for heuristics.
+3. The settings subpage where you can manage and map plugin dependencies.
+4. The frontPage with Debug bar displaying plugin filteration data.
+5. GTMetrix score for Dev environment without optimizations for over 124 plugins.
+6. GTMetrix score for Dev environment running Optimization with NitroPack only on WPEngine Host.
+7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
 
 == Changelog ==
 
@@ -349,7 +351,7 @@ Production-ready release with improved stability and error handling. Safe to upg
 
 = Performance =
 
-* **Time Complexity:** O(n) linear time for all operations
+* **Time Complexity:** O(1) detection with cached lookups, O(m) filtering where m = active plugins
 * **Space Complexity:** ~110KB memory overhead (includes caching)
 * **Filter Speed:** 0.3-0.8ms cached, 1.2-2.1ms uncached
 * **Plugin Reduction:** 85-90% on most pages
@@ -407,13 +409,3 @@ For support and documentation:
 Developed by samybaxy with a focus on performance, safety, and zero configuration.
 
 Special thanks to the WordPress community for their feedback and testing.
-
-== Screenshots ==
-
-1. The main settings page with options to Manage Essential Plugins, Plugin Dependencies, and rebuild cache.
-2. The settings subpage where you can manage your essential plugin list or scan all plugins for heuristics.
-3. The settings subpage where you can manage and map plugin dependencies.
-4. The frontPage with Debug bar displaying plugin filteration data.
-5. GTMetrix score for Dev environment without optimizations for over 124 plugins.
-6. GTMetrix score for Dev environment running Optimization with NitroPack only on WPEngine Host.
-7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
