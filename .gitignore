@@ -1,7 +1,10 @@
-# Turbo Charge - Git Ignore Rules
+# Samybaxy's Hyperdrive - Git Ignore Rules
 
 # Documentation (keep local only, not in remote repo)
 DOCUMENTATION.md
+
+# SVN directory for WordPress.org deployment
+samybaxy-hyperdrive/
 
 # IDE and Editor files
 .vscode/
