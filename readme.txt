@@ -416,4 +416,4 @@ Special thanks to the WordPress community for their feedback and testing.
 4. The frontPage with Debug bar displaying plugin filteration data.
 5. GTMetrix score for Dev environment without optimizations for over 124 plugins.
 6. GTMetrix score for Dev environment running Optimization with NitroPack only on WPEngine Host.
-6. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
+7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
