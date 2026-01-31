@@ -407,3 +407,13 @@ For support and documentation:
 Developed by samybaxy with a focus on performance, safety, and zero configuration.
 
 Special thanks to the WordPress community for their feedback and testing.
+
+== Screenshots ==
+
+1. The main settings page with options to Manage Essential Plugins, Plugin Dependencies, and rebuild cache.
+2. The settings subpage where you can manage your essential plugin list or scan all plugins for heuristics.
+3. The settings subpage where you can manage and map plugin dependencies.
+4. The frontPage with Debug bar displaying plugin filteration data.
+5. GTMetrix score for Dev environment without optimizations for over 124 plugins.
+6. GTMetrix score for Dev environment running Optimization with NitroPack only on WPEngine Host.
+6. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
