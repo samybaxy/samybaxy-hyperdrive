@@ -13,7 +13,16 @@
  * - Intelligent media plugin detection for rich content pages
  *
  * @package SamybaxyHyperdrive
- * @version 6.0.0
+ * @version 6.0.1
+ *
+ * CHANGELOG 6.0.1:
+ * - Removed WooCommerce reverse deps (was loading too many plugins on all WooCommerce pages)
+ * - Streamlined checkout detection to use only dynamic payment gateway detection
+ * - Made membership plugin loading conditional on logged-in users
+ *
+ * CHANGELOG 6.0.1:
+ * - Added get_payment_gateway_plugins() for dynamic payment gateway detection
+ * - Fixed checkout page detection to use uri_contains_keyword()
  */
 
 // Prevent direct access
@@ -24,7 +33,7 @@ if (!defined('ABSPATH')) {
 // Define constants FIRST so main plugin knows MU-loader is installed
 if (!defined('SHYPDR_MU_LOADER_ACTIVE')) {
     define('SHYPDR_MU_LOADER_ACTIVE', true);
-    define('SHYPDR_MU_LOADER_VERSION', '6.0.0');
+    define('SHYPDR_MU_LOADER_VERSION', '6.0.1'); // Optimized: Removed excessive reverse deps, streamlined checkout detection
 }
 
 // CRITICAL: Never filter on admin, AJAX, REST, CRON, CLI
@@ -332,18 +341,22 @@ class SHYPDR_Early_Filter {
         static $woo_keywords = ['shop', 'product', 'products', 'cart', 'checkout', 'my-account', 'order-received', 'order-pay'];
         if (self::uri_contains_keyword($uri, $slug, $parent_slug, $woo_keywords)) {
             $detected[] = 'woocommerce';
-            $detected[] = 'woocommerce-stripe-gateway';
-            $detected[] = 'woocommerce-gateway-stripe';
-            $detected[] = 'woocommerce-paypal-payments';
-            $detected[] = 'woo-paystack';
             $detected[] = 'jet-woo-builder';
             $detected[] = 'jet-woo-product-gallery';
             $detected[] = 'jet-smart-filters'; // CRITICAL FIX: Required for category filters and search widgets on shop pages
 
-            // Additional for checkout/cart
-            if ($slug === 'checkout' || $slug === 'cart') {
-                $detected[] = 'woocommerce-memberships';
-                $detected[] = 'woocommerce-subscriptions';
+            // Checkout/Cart pages: Load payment gateways
+            // CRITICAL: Payment gateways MUST be loaded for checkout to work
+            static $checkout_keywords = ['cart', 'checkout', 'order-pay', 'order-received'];
+            if (self::uri_contains_keyword($uri, $slug, $parent_slug, $checkout_keywords)) {
+                // Dynamically detect active payment gateway plugins
+                $detected = array_merge($detected, self::get_payment_gateway_plugins());
+
+                // Checkout-related plugins (only if user is logged in for memberships)
+                if (self::is_user_logged_in_early()) {
+                    $detected[] = 'woocommerce-memberships';
+                    $detected[] = 'woocommerce-subscriptions';
+                }
                 $detected[] = 'woocommerce-smart-coupons';
             }
 
@@ -500,6 +513,97 @@ class SHYPDR_Early_Filter {
     }
 
     /**
+     * Get active payment gateway plugins
+     * CRITICAL: Dynamically detects ALL payment gateway plugins for checkout pages
+     *
+     * @return array Active payment gateway plugin slugs
+     */
+    private static function get_payment_gateway_plugins() {
+        static $payment_plugins = null;
+
+        if ($payment_plugins !== null) {
+            return $payment_plugins;
+        }
+
+        $payment_plugins = [];
+
+        // Known payment gateway plugin patterns
+        static $known_payment_plugins = [
+            // Stripe variations
+            'woocommerce-gateway-stripe',
+            'woocommerce-stripe-gateway',
+            'stripe',
+            'stripe-for-woocommerce',
+            'stripe-payments',
+            'wp-stripe',
+            // PayPal variations
+            'woocommerce-paypal-payments',
+            'woocommerce-gateway-paypal-express-checkout',
+            'paypal-for-woocommerce',
+            'woo-paypal',
+            // Other common gateways
+            'woo-paystack',
+            'paystack',
+            'woocommerce-payments',
+            'woo-payments',
+            'square',
+            'woocommerce-square',
+            'authorize-net',
+            'woocommerce-gateway-authorize-net-cim',
+            'braintree',
+            'woocommerce-gateway-braintree',
+            'mollie-payments-for-woocommerce',
+            'klarna',
+            'afterpay',
+            'affirm',
+            'razorpay',
+            'woo-razorpay',
+            'flutterwave',
+        ];
+
+        // Get active plugins from database
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
+        $active = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+                'active_plugins'
+            )
+        );
+
+        if ($active) {
+            $active = maybe_unserialize($active);
+            if (is_array($active)) {
+                foreach ($active as $plugin_path) {
+                    $slug = strpos($plugin_path, '/') !== false
+                        ? substr($plugin_path, 0, strpos($plugin_path, '/'))
+                        : $plugin_path;
+
+                    // Check if this is a known payment plugin
+                    if (in_array($slug, $known_payment_plugins, true)) {
+                        $payment_plugins[] = $slug;
+                        continue;
+                    }
+
+                    // Heuristic: Check for payment/gateway/stripe/paypal in slug name
+                    if (strpos($slug, 'payment') !== false ||
+                        strpos($slug, 'gateway') !== false ||
+                        strpos($slug, 'stripe') !== false ||
+                        strpos($slug, 'paypal') !== false ||
+                        strpos($slug, 'checkout') !== false ||
+                        strpos($slug, 'pay') !== false) {
+                        if (!in_array($slug, $payment_plugins, true)) {
+                            $payment_plugins[] = $slug;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $payment_plugins;
+    }
+
+    /**
      * Get active media/video player plugins
      * Intelligently detects which media plugins are actually active
      *
@@ -612,6 +716,13 @@ class SHYPDR_Early_Filter {
             'woocommerce-smart-coupons' => ['woocommerce'],
             'woocommerce-stripe-gateway' => ['woocommerce'],
             'woocommerce-gateway-stripe' => ['woocommerce'],
+            'stripe' => ['woocommerce'],
+            'stripe-for-woocommerce' => ['woocommerce'],
+            'stripe-payments' => ['woocommerce'],
+            'woocommerce-payments' => ['woocommerce'],
+            'woocommerce-paypal-payments' => ['woocommerce'],
+            'woo-paystack' => ['woocommerce'],
+            'paystack' => ['woocommerce'],
             'rcp-content-filter-utility' => ['restrict-content-pro'],
             'fluentformpro' => ['fluentform'],
             'fluent-forms-pro' => ['fluent-forms'],
@@ -619,7 +730,8 @@ class SHYPDR_Early_Filter {
             'uncanny-automator-pro' => ['uncanny-automator'],
         ];
 
-        // Reverse dependencies
+        // Reverse dependencies (when parent is loaded, also load these children if active)
+        // NOTE: Payment gateways are NOT here - they're loaded via direct detection on checkout pages only
         static $reverse_deps = [
             'jet-engine' => [
                 'jet-menu', 'jet-blocks', 'jet-theme-core', 'jet-elements', 'jet-tabs',

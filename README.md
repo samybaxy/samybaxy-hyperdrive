@@ -14,7 +14,7 @@ This isn't just another caching plugin or image optimizer. This is fundamentally
 
 ## At a Glance
 
-**Version:** 6.0.0 (Production Ready)
+**Version:** 6.0.1 (Production Ready)
 **Requirements:** WordPress 6.4+, PHP 8.2+
 **License:** GPLv2 or later
 **Performance Impact:** 65-75% faster page loads, 85-90% plugin reduction per page
@@ -443,6 +443,6 @@ For issues or questions:
 ---
 
 **Last Updated**: January 29, 2026
-**Version**: 6.0.0
+**Version**: 6.0.1
 **Status**: Production Ready
 **Author**: samybaxy

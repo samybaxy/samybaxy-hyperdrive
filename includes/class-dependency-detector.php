@@ -27,7 +27,20 @@ class SHYPDR_Dependency_Detector {
      */
     private static $known_ecosystems = [
         'elementor' => ['elementor-pro', 'the-plus-addons-for-elementor-page-builder'],
-        'woocommerce' => ['woocommerce-subscriptions', 'woocommerce-memberships', 'jet-woo-builder'],
+        'woocommerce' => [
+            'woocommerce-subscriptions',
+            'woocommerce-memberships',
+            'jet-woo-builder',
+            // Payment gateways - CRITICAL for checkout
+            'woocommerce-gateway-stripe',
+            'woocommerce-stripe-gateway',
+            'stripe',
+            'stripe-for-woocommerce',
+            'woocommerce-payments',
+            'woocommerce-paypal-payments',
+            'woo-paystack',
+            'paystack',
+        ],
         'jet-engine' => ['jet-menu', 'jet-blocks', 'jet-elements', 'jet-tabs', 'jet-popup', 'jet-smart-filters'],
         'learnpress' => ['learnpress-prerequisites', 'learnpress-course-review'],
         'restrict-content-pro' => ['rcp-content-filter-utility'],

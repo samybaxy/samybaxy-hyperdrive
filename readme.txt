@@ -4,7 +4,7 @@ Donate link: https://github.com/samybaxy/samybaxy-hyperdrive/blob/main/DONATE.md
 Tags: performance, optimization, speed, caching, conditional-loading
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 6.0.0
+Stable tag: 6.0.1
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -263,6 +263,12 @@ Yes, the plugin supports WordPress multisite installations.
 7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
 
 == Changelog ==
+
+= 6.0.1 - February 1, 2026 =
+* FIXED: Payment gateways (Stripe, PayPal, etc.) not loading on checkout pages
+* NEW: Dynamic payment gateway detection for checkout/cart pages
+* IMPROVED: Streamlined checkout plugin loading for better performance
+* IMPROVED: Membership plugins now only load on checkout for logged-in users
 
 = 6.0.0 - January 29, 2026 =
 * BREAKING: Complete plugin rename from "Turbo Charge" to "Samybaxy's Hyperdrive"
