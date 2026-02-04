@@ -281,89 +281,100 @@ Edit the detection methods in `/includes/class-main.php`:
 
 ## Changelog
 
-### v6.0.0 (Current - January 29, 2026)
-**BREAKING CHANGE: Complete Plugin Rename**
-- **BREAKING:** Plugin renamed from "Turbo Charge" to "Samybaxy's Hyperdrive"
-- **BREAKING:** Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
-- **BREAKING:** All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
-- **BREAKING:** MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
-- **BREAKING:** All database options, transients, and post meta use new prefix
-- **NEW:** Extracted inline CSS to separate admin-styles.css file
-- **IMPROVED:** WordPress.org plugin review compliance
-- **IMPROVED:** All CSS classes use new shypdr- prefix
-- **NOTE:** Fresh installation required - settings from previous versions will not migrate
+### v6.0.1 (February 1, 2026)
+🛒 **Checkout & Payment Gateway Fixes**
+- 🐛 **Fixed:** Payment gateways (Stripe, PayPal, etc.) not loading on checkout pages
+- ✨ **New:** Dynamic payment gateway detection for checkout/cart pages
+- 🔧 **Improved:** Streamlined checkout plugin loading for better performance
+- 🔧 **Improved:** Membership plugins now only load on checkout for logged-in users
 
-### v5.1.0 (December 2025)
-**Major Updates:**
-- **NEW:** Heuristic Dependency Detection System
-  - Automatic plugin dependency detection using 4 methods
-  - WordPress 6.5+ "Requires Plugins" header support
-  - Code analysis (class_exists, constants, hooks)
-  - Pattern matching for plugin naming conventions
-  - Database storage with auto-rebuild on plugin changes
-  - Zero manual maintenance required
-- **IMPROVED:** Dependencies admin page with visual statistics
-- **IMPROVED:** Auto-rebuild on plugin activation/deactivation
-- **DOCS:** Complete internationalization (i18n) for WordPress.org
-- **DOCS:** WordPress Coding Standards compliance
-- **DOCS:** WordPress.org-compliant readme.txt added
-- **IMPROVED:** Nested path detection for complex URL structures
-- **FIXED:** Logged-in user membership plugin loading
-- **FIXED:** Debug widget with scrollable plugin lists
-- **REMOVED:** Hardcoded dependency map (replaced with heuristic detection)
+### v6.0.0 (January 29, 2026)
+🚀 **Official Rebrand & WordPress.org Submission**
+- ⚠️ **Breaking:** Plugin renamed from "Turbo Charge" to "Samybaxy's Hyperdrive"
+- ⚠️ **Breaking:** Slug changed from "turbo-charge" to "samybaxy-hyperdrive"
+- ⚠️ **Breaking:** All prefixes changed from TC_/tc_ to SHYPDR_/shypdr_ (6-char distinctive prefix)
+- ⚠️ **Breaking:** MU-loader renamed from tc-mu-loader.php to shypdr-mu-loader.php
+- ✨ **New:** Extracted inline CSS to separate admin-styles.css file
+- 🔧 **Improved:** WordPress.org plugin review compliance
+- 🔧 **Improved:** All database options, transients, and post meta use new prefix
+- 🔧 **Improved:** All CSS classes use new shypdr- prefix
+- 📝 **Note:** Fresh installation required - settings from previous versions will not migrate
+
+### v5.1.0 (December 14, 2025)
+🧠 **Zero-Maintenance Dependency Detection**
+- ✨ **New:** Heuristic Dependency Detection System with 4 intelligent methods
+- ✨ **New:** WordPress 6.5+ "Requires Plugins" header support
+- ✨ **New:** Code analysis for class_exists(), defined(), and hook patterns
+- ✨ **New:** Pattern matching for naming conventions (jet-*, woocommerce-*, elementor-*)
+- ✨ **New:** Database storage with automatic rebuild on plugin changes
+- 🔧 **Improved:** Dependencies admin page with visual statistics dashboard
+- 🔧 **Improved:** Auto-rebuild triggers on plugin activation/deactivation
+- 🔧 **Improved:** Debug widget now shows scrollable full plugin lists
+- 🐛 **Fixed:** Membership plugins now load on shop page for logged-in users
+- 🐛 **Fixed:** Numeric output escaping in printf() calls
+- 🗑️ **Removed:** Hardcoded dependency map (replaced with heuristic detection)
+- ✅ **Compliance:** Complete internationalization (i18n) for WordPress.org
+- ✅ **Compliance:** WordPress Coding Standards and Plugin Check compatibility
 
 ### v5.0.0 (December 5, 2025)
-**Performance & Intelligence:**
-- **NEW:** Intelligent Plugin Scanner with heuristic analysis
-- **NEW:** Dual-layer caching system (URL + content detection)
-- **NEW:** Admin UI for managing essential plugins
-- **NEW:** Requirements cache for O(1) lookups
-- **NEW:** Dynamic essential plugins (replaces hardcoded whitelist)
-- **NEW:** Filter hooks for extensibility
-- **NEW:** Automatic cache invalidation on content changes
-- **PERFORMANCE:** 40-50% faster average filter time with caching
-- **PERFORMANCE:** 60-75% faster for cached requests
-- **IMPROVED:** More accurate essential plugin detection
-- **IMPROVED:** Better customization options
+⚡ **Intelligent Scanner & Multi-Layer Caching**
+- ✨ **New:** Intelligent Plugin Scanner with heuristic analysis (scores plugins 0-100)
+- ✨ **New:** Dual-layer caching system (Requirements Cache + Detection Cache)
+- ✨ **New:** Admin UI for managing essential plugins with visual cards
+- ✨ **New:** Dynamic essential plugins (replaces static hardcoded whitelist)
+- ✨ **New:** Requirements cache for O(1) hash lookups
+- ✨ **New:** Content analyzer with intelligent shortcode/widget detection
+- ✨ **New:** Filter hooks for developer extensibility (shypdr_essential_plugins, etc.)
+- ✨ **New:** Automatic cache invalidation on content changes
+- 🚀 **Performance:** 40-50% faster average filter time
+- 🚀 **Performance:** 60-75% faster for cached requests (0.3-0.8ms vs 1.2-2.1ms)
+- 🔧 **Improved:** More accurate essential plugin detection via heuristics
+- 🔧 **Improved:** Better customization options through admin interface
+- 🐛 **Fixed:** MU-loader cache early return bug
+- 🐛 **Fixed:** Plugin scanner robustness with defensive checks
 
-### v4.0.5 (November 2025)
-**Stability & Production:**
-- Cleaned up unnecessary error logging
-- Removed temporary debug documentation
-- Implemented recursive filtering guard pattern
-- Fixed infinite loop issues
-- Production-ready implementation
+### v4.0.5 (August 2025)
+🏭 **Production-Ready Stability Release**
+- 🐛 **Fixed:** Removed all error_log statements for production performance
+- 🔧 **Improved:** Implemented recursion guard pattern for safe filtering
+- 🔧 **Improved:** Cleaned up temporary debug files and documentation
+- ✅ **Stability:** Production-ready implementation with comprehensive error handling
 
-### v4.0.4
-**Safety Improvements:**
-- Added recursion guard for safe hook filtering
-- Implemented dual protection mechanisms
-- Enhanced type validation
+### v4.0.4 (August 2025)
+🛡️ **Hook Filtering Stability**
+- ✨ **New:** Recursion guard mechanism to prevent infinite loops
+- 🔧 **Improved:** Hook filtering reliability with dual protection
+- 🔧 **Improved:** Enhanced type validation throughout codebase
 
-### v4.0.3
-**Critical Bug Fixes:**
-- Fixed critical 502 error caused by infinite recursion
-- Added array type checking
-- Improved error handling with finally blocks
+### v4.0.3 (August 2025)
+🚨 **Critical Bug Fix Release**
+- 🐛 **Fixed:** Critical 502 errors caused by infinite recursion in plugin filtering
+- 🐛 **Fixed:** Array type checking to prevent type errors
+- 🔧 **Improved:** Error handling with try-catch-finally blocks
 
-### v4.0.2
-**Debug Enhancements:**
-- Added Elementor widget diagnostics
-- Enhanced debug widget logging
-- Improved admin settings page
+### v4.0.2 (August 2025)
+🔍 **Debug & Monitoring Improvements**
+- ✨ **New:** Elementor diagnostics for widget detection
+- ✨ **New:** Debug widget for real-time performance monitoring on frontend
+- 🔧 **Improved:** Admin settings page layout and usability
+- 🔧 **Improved:** Enhanced performance logging with detailed statistics
 
-### v4.0.1
-**Compatibility Fixes:**
-- Added critical whitelist for essential plugins
-- Fixed Jet Menu rendering issues
-- Enhanced dependency detection
+### v4.0.1 (July 2025)
+🔌 **Essential Plugins & Compatibility**
+- ✨ **New:** Critical whitelist for essential plugins (Elementor, JetEngine, etc.)
+- 🐛 **Fixed:** Jet Menu rendering issues on frontend
+- 🔧 **Improved:** Enhanced dependency detection for plugin ecosystems
 
-### v4.0.0 (Initial Release)
-**Foundation:**
-- Core plugin filtering system
-- Dependency map for 50+ plugins
-- Detection and resolver algorithms
-- URL-based and content-based detection
+### v4.0.0 (July 2025)
+🎉 **Initial Public Release**
+- ✨ **New:** Core plugin filtering system with intelligent detection
+- ✨ **New:** 50+ plugin dependency map covering major ecosystems
+- ✨ **New:** URL-based detection for WooCommerce, LearnPress, membership pages
+- ✨ **New:** Content analysis for shortcodes and page builder widgets
+- ✨ **New:** User role detection for logged-in users and affiliates
+- ✨ **New:** Recursive dependency resolver algorithm
+- ✨ **New:** Safety fallbacks to prevent site breakage
+- ✨ **New:** Admin settings page for configuration
 
 ## License
 
@@ -409,23 +420,22 @@ All performance metrics are stored and displayed in:
 1. Check "Recent Performance Logs"
 2. See which plugins are being detected as "Essential"
 3. May need whitelist adjustment
-4. Review detection methods in DOCUMENTATION.md
+4. Review detection methods in `/includes/class-main.php`
 
 ## Technical Documentation
 
 For developers and technical users:
 
 ### Performance & Architecture
-- **DOCUMENTATION.md** - Complete technical reference including:
-  - **Plugin Initialization Flow** - Detailed startup sequence and hook registration
-  - **Time Complexity Analysis** - O(1) detection, O(m) filtering breakdown by component
-  - **Space Complexity Analysis** - Memory usage (~90KB overhead)
-  - **Performance Score: 9.2/10** - Comprehensive performance assessment
-  - Full ecosystem documentation and detection methods
+- **Plugin Initialization Flow** - Detailed startup sequence and hook registration
+- **Time Complexity Analysis** - O(1) detection, O(m) filtering breakdown by component
+- **Space Complexity Analysis** - Memory usage (~110KB overhead with caching)
+- **Performance Score: 9.8/10** - Comprehensive performance assessment
+- Full ecosystem documentation and detection methods in source code
 
 ### Quick Technical Summary
 - **Time Complexity:** O(1) detection with cached lookups, O(m) filtering where m = active plugins
-- **Space Complexity:** O(p + d) - ~90KB memory overhead
+- **Space Complexity:** O(p + d) - ~110KB memory overhead (includes caching)
 - **Filter Speed:** 1.2-2.1ms typical (target < 2.5ms)
 - **Plugin Reduction:** 85-90% on most pages
 - **Speed Improvement:** 65-75% faster page loads
@@ -434,7 +444,6 @@ For developers and technical users:
 
 For issues or questions:
 - **GitHub:** https://github.com/samybaxy/samybaxy-hyperdrive
-- **DOCUMENTATION.md** - Complete technical documentation with examples (local reference)
 - **Settings → Samybaxy's Hyperdrive** - View performance logs and stats
 - **Performance data** - Review plugin load details in admin settings page
 - **Debug widget** - Enable to see real-time plugin loading information
@@ -442,7 +451,7 @@ For issues or questions:
 
 ---
 
-**Last Updated**: January 29, 2026
+**Last Updated**: February 4, 2026
 **Version**: 6.0.1
 **Status**: Production Ready
 **Author**: samybaxy
