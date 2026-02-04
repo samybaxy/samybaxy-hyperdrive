@@ -83,6 +83,29 @@ The plugin automatically detects which plugins are needed via:
 * **Filter overhead:** < 2.5ms per request
 * **Server cost reduction:** 60-70% for same traffic
 
+= What's New in v6.0.1 =
+
+🛒 **Checkout & Payment Gateway Fixes**
+
+Fixed critical issue where payment gateways weren't loading on checkout pages:
+
+* **Dynamic Gateway Detection** - Automatically detects and loads Stripe, PayPal, and other payment plugins on checkout/cart pages
+* **Streamlined Checkout** - Optimized plugin loading for better checkout performance
+* **Smart Membership Loading** - Membership plugins now only load on checkout for logged-in users
+
+= What's New in v6.0 =
+
+🚀 **Official Rebrand & WordPress.org Submission**
+
+Complete plugin rebrand from "Turbo Charge" to "Samybaxy's Hyperdrive":
+
+* **New Identity** - Fresh branding with distinctive SHYPDR prefix
+* **WordPress.org Compliant** - Meets all plugin directory requirements
+* **Clean Codebase** - Extracted CSS, improved structure, proper escaping
+* **MU-Loader Update** - Renamed to shypdr-mu-loader.php for consistency
+
+⚠️ **Note:** Fresh installation required - settings from previous versions will not migrate.
+
 = What's New in v5.1 =
 
 **Heuristic Dependency Detection System** - Zero Manual Maintenance!
