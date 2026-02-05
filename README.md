@@ -14,7 +14,7 @@ This isn't just another caching plugin or image optimizer. This is fundamentally
 
 ## At a Glance
 
-**Version:** 6.0.1 (Production Ready)
+**Version:** 6.0.2 (Production Ready)
 **Requirements:** WordPress 6.4+, PHP 8.2+
 **License:** GPLv2 or later
 **Performance Impact:** 65-75% faster page loads, 85-90% plugin reduction per page
@@ -280,6 +280,22 @@ Edit the detection methods in `/includes/class-main.php`:
 - Jet Menu works perfectly
 
 ## Changelog
+
+### v6.0.2 (February 5, 2026)
+🔗 **WordPress 6.5+ Plugin Dependencies Integration**
+- ✨ **New:** Full integration with WordPress 6.5+ `WP_Plugin_Dependencies` API
+- ✨ **New:** Native support for `Requires Plugins` header parsing
+- ✨ **New:** Circular dependency detection using DFS with three-color marking (O(V+E) time complexity)
+- ✨ **New:** Proper slug validation matching WordPress.org format (`/^[a-z0-9]+(-[a-z0-9]+)*$/`)
+- ✨ **New:** Support for `wp_plugin_dependencies_slug` filter (premium/free plugin swapping)
+- ✨ **New:** 5-layer dependency detection: WP Core → Header → Code Analysis → Pattern Matching → Known Ecosystems
+- 🔧 **Improved:** MU-loader now uses database-stored dependency map when available
+- 🔧 **Improved:** Automatic dependency map rebuild on plugin activation/deactivation
+- 🔧 **Improved:** Version upgrade detection with automatic MU-loader updates
+- 🔧 **Improved:** Extended class/constant/hook pattern detection for more plugins
+- 🛡️ **Safety:** Circular dependency protection prevents infinite loops during resolution
+- 🛡️ **Safety:** Max iteration limit (1000) as additional infinite loop protection
+- 📊 **Stats:** New detection source tracking (wp_core, header, code, pattern, ecosystem)
 
 ### v6.0.1 (February 1, 2026)
 🛒 **Checkout & Payment Gateway Fixes**

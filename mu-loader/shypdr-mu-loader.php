@@ -33,7 +33,7 @@ if (!defined('ABSPATH')) {
 // Define constants FIRST so main plugin knows MU-loader is installed
 if (!defined('SHYPDR_MU_LOADER_ACTIVE')) {
     define('SHYPDR_MU_LOADER_ACTIVE', true);
-    define('SHYPDR_MU_LOADER_VERSION', '6.0.1'); // Optimized: Removed excessive reverse deps, streamlined checkout detection
+    define('SHYPDR_MU_LOADER_VERSION', '6.0.2'); // Enhanced: WP 6.5+ Plugin Dependencies integration, circular dep protection
 }
 
 // CRITICAL: Never filter on admin, AJAX, REST, CRON, CLI
@@ -678,11 +678,54 @@ class SHYPDR_Early_Filter {
     }
 
     /**
-     * Resolve plugin dependencies (O(k) where k = required plugins)
+     * Resolve plugin dependencies with circular dependency protection
+     *
+     * Time Complexity: O(k + e) where k = plugins to process, e = edges traversed
+     * Space Complexity: O(k) for the queue and result set
+     *
+     * Uses database-stored dependency map when available (built by main plugin),
+     * falls back to static hardcoded maps for performance when DB isn't ready.
      */
     private static function resolve_dependencies($required_slugs, $active_plugins) {
-        // Dependency map
-        static $dependencies = [
+        // Try to get dependency map from database first (built by main plugin)
+        // This includes WP 6.5+ Requires Plugins header data
+        static $db_dependency_map = null;
+        static $db_circular_deps = null;
+
+        if (null === $db_dependency_map) {
+            global $wpdb;
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $result = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+                    'shypdr_dependency_map'
+                )
+            );
+            if ($result) {
+                $db_dependency_map = maybe_unserialize($result);
+            }
+            if (!is_array($db_dependency_map)) {
+                $db_dependency_map = [];
+            }
+
+            // Also get circular dependencies
+            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+            $circular_result = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+                    'shypdr_circular_dependencies'
+                )
+            );
+            if ($circular_result) {
+                $db_circular_deps = maybe_unserialize($circular_result);
+            }
+            if (!is_array($db_circular_deps)) {
+                $db_circular_deps = [];
+            }
+        }
+
+        // Fallback static dependency map (used when DB map is empty)
+        static $fallback_dependencies = [
             'jet-menu' => ['jet-engine'],
             'jet-blocks' => ['jet-engine'],
             'jet-elements' => ['jet-engine'],
@@ -732,7 +775,7 @@ class SHYPDR_Early_Filter {
 
         // Reverse dependencies (when parent is loaded, also load these children if active)
         // NOTE: Payment gateways are NOT here - they're loaded via direct detection on checkout pages only
-        static $reverse_deps = [
+        static $fallback_reverse_deps = [
             'jet-engine' => [
                 'jet-menu', 'jet-blocks', 'jet-theme-core', 'jet-elements', 'jet-tabs',
                 'jet-popup', 'jet-blog', 'jet-search', 'jet-reviews', 'jet-smart-filters',
@@ -747,6 +790,15 @@ class SHYPDR_Early_Filter {
             'elementor' => ['elementor-pro'],
         ];
 
+        // Build circular deps set for O(1) lookup
+        $circular_set = [];
+        foreach ($db_circular_deps as $pair) {
+            if (is_array($pair) && count($pair) >= 2) {
+                $circular_set[$pair[0] . '|' . $pair[1]] = true;
+                $circular_set[$pair[1] . '|' . $pair[0]] = true;
+            }
+        }
+
         // Build active plugins set for O(1) lookup
         $active_set = [];
         foreach ($active_plugins as $plugin_path) {
@@ -756,8 +808,11 @@ class SHYPDR_Early_Filter {
 
         $to_load = [];
         $queue = $required_slugs;
+        $max_iterations = 1000; // Safety limit to prevent infinite loops
+        $iterations = 0;
 
-        while (!empty($queue)) {
+        while (!empty($queue) && $iterations < $max_iterations) {
+            $iterations++;
             $slug = array_shift($queue);
 
             if (isset($to_load[$slug])) {
@@ -766,19 +821,39 @@ class SHYPDR_Early_Filter {
 
             $to_load[$slug] = true;
 
-            // Add dependencies
-            if (isset($dependencies[$slug])) {
-                foreach ($dependencies[$slug] as $dep) {
-                    if (!isset($to_load[$dep])) {
-                        $queue[] = $dep;
-                    }
+            // Get dependencies from DB map first, then fallback
+            $deps = [];
+            $rdeps = [];
+
+            if (!empty($db_dependency_map[$slug])) {
+                // Use database-stored dependencies (includes WP 6.5+ header data)
+                $deps = $db_dependency_map[$slug]['depends_on'] ?? [];
+                $rdeps = $db_dependency_map[$slug]['plugins_depending'] ?? [];
+            } else {
+                // Fallback to static map
+                $deps = $fallback_dependencies[$slug] ?? [];
+                $rdeps = $fallback_reverse_deps[$slug] ?? [];
+            }
+
+            // Add direct dependencies
+            foreach ($deps as $dep) {
+                // Check for circular dependency before adding
+                $pair_key = $slug . '|' . $dep;
+                if (isset($circular_set[$pair_key])) {
+                    continue; // Skip circular dependency
+                }
+
+                if (!isset($to_load[$dep])) {
+                    $queue[] = $dep;
                 }
             }
 
             // Add reverse dependencies (if active)
-            if (isset($reverse_deps[$slug])) {
-                foreach ($reverse_deps[$slug] as $rdep) {
-                    if (!isset($to_load[$rdep]) && isset($active_set[$rdep])) {
+            foreach ($rdeps as $rdep) {
+                if (!isset($to_load[$rdep]) && isset($active_set[$rdep])) {
+                    // Check for circular dependency
+                    $pair_key = $slug . '|' . $rdep;
+                    if (!isset($circular_set[$pair_key])) {
                         $queue[] = $rdep;
                     }
                 }

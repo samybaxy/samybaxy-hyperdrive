@@ -3,7 +3,7 @@
  * Plugin Name: Samybaxy's Hyperdrive
  * Plugin URI: https://github.com/samybaxy/samybaxy-hyperdrive
  * Description: Revolutionary plugin filtering - Load only essential plugins per page. Requires MU-plugin loader for actual performance gains.
- * Version: 6.0.1
+ * Version: 6.0.2
  * Author: samybaxy
  * Author URI: https://github.com/samybaxy
  * License: GPL v2 or later
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Core initialization constants
-define('SHYPDR_VERSION', '6.0.1');
+define('SHYPDR_VERSION', '6.0.2');
 define('SHYPDR_DIR', plugin_dir_path(__FILE__));
 define('SHYPDR_URL', plugin_dir_url(__FILE__));
 define('SHYPDR_BASENAME', plugin_basename(__FILE__));
@@ -54,7 +54,37 @@ function shypdr_activation_handler() {
     // This ensures the MU-loader is always the latest version
     // and prevents old MU-loaders from interfering with activation
     shypdr_install_mu_loader();
+
+    // Rebuild dependency map on activation (includes WP 6.5+ header support)
+    if (class_exists('SHYPDR_Dependency_Detector')) {
+        SHYPDR_Dependency_Detector::rebuild_dependency_map();
+    }
+
+    // Store current version for upgrade detection
+    update_option('shypdr_version', SHYPDR_VERSION);
 }
+
+/**
+ * Check for plugin version upgrade and run migrations
+ */
+function shypdr_check_version_upgrade() {
+    $stored_version = get_option('shypdr_version', '0');
+
+    if (version_compare($stored_version, SHYPDR_VERSION, '<')) {
+        // Version upgrade detected - rebuild dependency map
+        // This ensures WP 6.5+ Requires Plugins header data is picked up
+        if (class_exists('SHYPDR_Dependency_Detector')) {
+            SHYPDR_Dependency_Detector::rebuild_dependency_map();
+        }
+
+        // Update MU-loader to latest version
+        shypdr_install_mu_loader();
+
+        // Store new version
+        update_option('shypdr_version', SHYPDR_VERSION);
+    }
+}
+add_action('admin_init', 'shypdr_check_version_upgrade');
 
 /**
  * Install MU-plugin loader automatically

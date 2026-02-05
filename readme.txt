@@ -4,7 +4,7 @@ Donate link: https://github.com/samybaxy/samybaxy-hyperdrive/blob/main/DONATE.md
 Tags: performance, optimization, speed, caching, conditional-loading
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 6.0.1
+Stable tag: 6.0.2
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -14,7 +14,7 @@ Load only essential plugins per page for 65-75% faster WordPress sites through i
 == Description ==
 
 **Status:** Production Ready
-**Current Version:** 6.0.1
+**Current Version:** 6.0.2
 
 Samybaxy's Hyperdrive makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
 
@@ -82,6 +82,24 @@ The plugin automatically detects which plugins are needed via:
 * **Memory savings:** 40-60% less memory usage
 * **Filter overhead:** < 2.5ms per request
 * **Server cost reduction:** 60-70% for same traffic
+
+= What's New in v6.0.2 =
+
+🔗 **WordPress 6.5+ Plugin Dependencies Integration**
+
+Full integration with WordPress core's plugin dependency system:
+
+* **WP_Plugin_Dependencies API** - Native support for WordPress 6.5+ dependency tracking
+* **Requires Plugins Header** - Automatic parsing of the official plugin dependency header
+* **Circular Dependency Detection** - Prevents infinite loops using DFS algorithm (O(V+E) complexity)
+* **5-Layer Detection** - WP Core → Header → Code Analysis → Pattern Matching → Known Ecosystems
+* **wp_plugin_dependencies_slug Filter** - Support for premium/free plugin slug swapping
+
+**Technical Improvements:**
+* Database-backed dependency map for MU-loader
+* Automatic map rebuild on plugin activation/deactivation
+* Version upgrade detection with automatic updates
+* Extended pattern detection for more plugins
 
 = What's New in v6.0.1 =
 
@@ -286,6 +304,20 @@ Yes, the plugin supports WordPress multisite installations.
 7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
 
 == Changelog ==
+
+= 6.0.2 - February 5, 2026 =
+🔗 WordPress 6.5+ Plugin Dependencies Integration
+* ✨ New: Full integration with WordPress 6.5+ WP_Plugin_Dependencies API
+* ✨ New: Native support for Requires Plugins header parsing
+* ✨ New: Circular dependency detection using DFS with three-color marking
+* ✨ New: Proper slug validation matching WordPress.org format
+* ✨ New: Support for wp_plugin_dependencies_slug filter (premium/free plugin swapping)
+* ✨ New: 5-layer dependency detection hierarchy
+* 🔧 Improved: MU-loader now uses database-stored dependency map
+* 🔧 Improved: Automatic dependency map rebuild on plugin changes
+* 🔧 Improved: Version upgrade detection with automatic MU-loader updates
+* 🛡️ Safety: Circular dependency protection prevents infinite loops
+* 🛡️ Safety: Max iteration limit as additional protection
 
 = 6.0.1 - February 1, 2026 =
 🛒 Checkout & Payment Gateway Fixes
