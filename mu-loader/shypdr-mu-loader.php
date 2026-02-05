@@ -774,20 +774,25 @@ class SHYPDR_Early_Filter {
         ];
 
         // Reverse dependencies (when parent is loaded, also load these children if active)
-        // NOTE: Payment gateways are NOT here - they're loaded via direct detection on checkout pages only
+        // IMPORTANT: This is a CURATED list - only include plugins that are needed for
+        // core site functionality (menus, theme, UI). Do NOT include plugins that would
+        // cascade to load other ecosystems (e.g., jet-woo-builder loads woocommerce).
+        // WooCommerce-related plugins are loaded via URL/content detection, not here.
         static $fallback_reverse_deps = [
             'jet-engine' => [
+                // Core UI/Theme plugins - always needed for site appearance
                 'jet-menu', 'jet-blocks', 'jet-theme-core', 'jet-elements', 'jet-tabs',
-                'jet-popup', 'jet-blog', 'jet-search', 'jet-reviews', 'jet-smart-filters',
-                'jet-compare-wishlist', 'jet-tricks', 'jet-woo-builder', 'jet-woo-product-gallery',
-                'jetformbuilder',
-                // JetEngine Extensions
+                'jet-popup', 'jet-tricks', 'jet-style-manager',
+                // JetEngine Extensions - small utilities, no external deps
                 'jet-engine-trim-callback', 'jet-engine-attachment-link-callback',
                 'jet-engine-custom-visibility-conditions', 'jet-engine-dynamic-charts-module',
                 'jet-engine-dynamic-tables-module', 'jet-engine-items-number-filter',
                 'jet-engine-layout-switcher', 'jet-engine-post-expiration-period'
+                // NOTE: jet-woo-builder, jet-woo-product-gallery, jet-blog, jet-search,
+                // jet-smart-filters, jet-reviews, jet-compare-wishlist, jetformbuilder
+                // are NOT here - they load based on page content/URL detection
             ],
-            'elementor' => ['elementor-pro'],
+            'elementor' => ['elementor-pro', 'the-plus-addons-for-elementor-page-builder'],
         ];
 
         // Build circular deps set for O(1) lookup
@@ -821,21 +826,20 @@ class SHYPDR_Early_Filter {
 
             $to_load[$slug] = true;
 
-            // Get dependencies from DB map first, then fallback
+            // Get FORWARD dependencies from DB map first, then fallback
+            // IMPORTANT: We use DB for forward deps (what this plugin requires)
+            // but ONLY use curated static list for reverse deps (to prevent cascade)
             $deps = [];
-            $rdeps = [];
 
-            if (!empty($db_dependency_map[$slug])) {
-                // Use database-stored dependencies (includes WP 6.5+ header data)
-                $deps = $db_dependency_map[$slug]['depends_on'] ?? [];
-                $rdeps = $db_dependency_map[$slug]['plugins_depending'] ?? [];
-            } else {
-                // Fallback to static map
-                $deps = $fallback_dependencies[$slug] ?? [];
-                $rdeps = $fallback_reverse_deps[$slug] ?? [];
+            if (!empty($db_dependency_map[$slug]['depends_on'])) {
+                // Use database-stored forward dependencies (includes WP 6.5+ header data)
+                $deps = $db_dependency_map[$slug]['depends_on'];
+            } elseif (isset($fallback_dependencies[$slug])) {
+                // Fallback to static map for forward deps
+                $deps = $fallback_dependencies[$slug];
             }
 
-            // Add direct dependencies
+            // Add direct dependencies (forward: what this plugin requires)
             foreach ($deps as $dep) {
                 // Check for circular dependency before adding
                 $pair_key = $slug . '|' . $dep;
@@ -848,13 +852,17 @@ class SHYPDR_Early_Filter {
                 }
             }
 
-            // Add reverse dependencies (if active)
-            foreach ($rdeps as $rdep) {
-                if (!isset($to_load[$rdep]) && isset($active_set[$rdep])) {
-                    // Check for circular dependency
-                    $pair_key = $slug . '|' . $rdep;
-                    if (!isset($circular_set[$pair_key])) {
-                        $queue[] = $rdep;
+            // Add reverse dependencies ONLY from curated static list
+            // This prevents cascade loading of all WooCommerce/AffiliateWP extensions
+            // Only jet-engine and elementor should pull in their core UI plugins
+            if (isset($fallback_reverse_deps[$slug])) {
+                foreach ($fallback_reverse_deps[$slug] as $rdep) {
+                    if (!isset($to_load[$rdep]) && isset($active_set[$rdep])) {
+                        // Check for circular dependency
+                        $pair_key = $slug . '|' . $rdep;
+                        if (!isset($circular_set[$pair_key])) {
+                            $queue[] = $rdep;
+                        }
                     }
                 }
             }
