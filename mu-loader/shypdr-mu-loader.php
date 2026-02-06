@@ -1,9 +1,14 @@
 <?php
 /**
- * Samybaxy's Hyperdrive - MU-Plugin Loader (High Performance Edition)
+ * Plugin Name: Samybaxy's Hyperdrive - MU Loader
+ * Plugin URI: https://github.com/samybaxy/samybaxy-hyperdrive
+ * Description: High-performance plugin filter that intercepts plugin loading before WordPress loads regular plugins. Requires the main Samybaxy's Hyperdrive plugin.
+ * Version: 6.0.2
+ * Author: samybaxy
+ * Author URI: https://github.com/samybaxy
+ * License: GPL v2 or later
  *
  * This file MUST be placed in wp-content/mu-plugins/ to work.
- * It intercepts plugin loading BEFORE WordPress loads regular plugins.
  *
  * PERFORMANCE OPTIMIZATIONS:
  * - Single database query for lookup table (O(1) amortized)
@@ -13,16 +18,17 @@
  * - Intelligent media plugin detection for rich content pages
  *
  * @package SamybaxyHyperdrive
- * @version 6.0.1
  *
- * CHANGELOG 6.0.1:
- * - Removed WooCommerce reverse deps (was loading too many plugins on all WooCommerce pages)
- * - Streamlined checkout detection to use only dynamic payment gateway detection
- * - Made membership plugin loading conditional on logged-in users
+ * CHANGELOG 6.0.2:
+ * - Integrated WordPress 6.5+ Plugin Dependencies API for forward deps
+ * - Fixed reverse dependency cascade (was loading all plugins)
+ * - Curated reverse deps list: only jet-engine core UI and elementor-pro
+ * - Added circular dependency protection
  *
  * CHANGELOG 6.0.1:
  * - Added get_payment_gateway_plugins() for dynamic payment gateway detection
  * - Fixed checkout page detection to use uri_contains_keyword()
+ * - Made membership plugin loading conditional on logged-in users
  */
 
 // Prevent direct access
@@ -33,7 +39,7 @@ if (!defined('ABSPATH')) {
 // Define constants FIRST so main plugin knows MU-loader is installed
 if (!defined('SHYPDR_MU_LOADER_ACTIVE')) {
     define('SHYPDR_MU_LOADER_ACTIVE', true);
-    define('SHYPDR_MU_LOADER_VERSION', '6.0.2'); // Enhanced: WP 6.5+ Plugin Dependencies integration, circular dep protection
+    define('SHYPDR_MU_LOADER_VERSION', '6.0.2');
 }
 
 // CRITICAL: Never filter on admin, AJAX, REST, CRON, CLI
@@ -46,6 +52,8 @@ if (defined('DOING_AJAX') && DOING_AJAX) {
     return;
 }
 
+// Note: REST_REQUEST constant isn't defined yet at MU-plugin load time
+// We detect REST requests via URL below instead
 if (defined('REST_REQUEST') && REST_REQUEST) {
     return;
 }
@@ -58,11 +66,16 @@ if (defined('WP_CLI') && WP_CLI) {
     return;
 }
 
-// Fast URI checks for admin paths (string operations only, no regex)
+// Fast URI checks for admin paths, REST API, and AJAX (string operations only, no regex)
+// CRITICAL: REST API and AJAX must bypass filtering for checkout payment gateways
 // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Read-only early detection, no actions performed
 $shypdr_request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
 if (strpos($shypdr_request_uri, '/wp-admin') !== false ||
     strpos($shypdr_request_uri, '/wp-login') !== false ||
+    strpos($shypdr_request_uri, '/wp-json/') !== false ||    // REST API - CRITICAL for WooCommerce Blocks
+    strpos($shypdr_request_uri, 'rest_route=') !== false ||  // REST API alternate format
+    strpos($shypdr_request_uri, 'admin-ajax.php') !== false || // AJAX - CRITICAL for Elementor checkout
+    strpos($shypdr_request_uri, 'wc-ajax=') !== false ||     // WooCommerce AJAX (checkout, cart updates)
     strpos($shypdr_request_uri, 'wp-activate.php') !== false ||
     strpos($shypdr_request_uri, 'wp-signup.php') !== false ||
     strpos($shypdr_request_uri, 'xmlrpc.php') !== false) {
@@ -345,19 +358,25 @@ class SHYPDR_Early_Filter {
             $detected[] = 'jet-woo-product-gallery';
             $detected[] = 'jet-smart-filters'; // CRITICAL FIX: Required for category filters and search widgets on shop pages
 
-            // Checkout/Cart pages: Load payment gateways
-            // CRITICAL: Payment gateways MUST be loaded for checkout to work
+            // Checkout/Cart pages: Load payment gateways and checkout essentials
+            // CRITICAL: Payment gateways and related plugins MUST be loaded for checkout to work
             static $checkout_keywords = ['cart', 'checkout', 'order-pay', 'order-received'];
             if (self::uri_contains_keyword($uri, $slug, $parent_slug, $checkout_keywords)) {
                 // Dynamically detect active payment gateway plugins
                 $detected = array_merge($detected, self::get_payment_gateway_plugins());
 
-                // Checkout-related plugins (only if user is logged in for memberships)
+                // Essential checkout plugins (always load on checkout)
+                $detected[] = 'woocommerce-services';          // WooCommerce Services (shipping labels, taxes)
+                $detected[] = 'woocommerce-product-bundles';   // Product Bundles support
+                $detected[] = 'woocommerce-smart-coupons';     // Coupons/gift cards
+                $detected[] = 'woocommerce-subscriptions';     // Subscriptions (needed for recurring)
+                $detected[] = 'woocommerce-legacy-rest-api';   // Legacy REST API (some gateways need this)
+
+                // Membership plugins (only if user is logged in)
                 if (self::is_user_logged_in_early()) {
                     $detected[] = 'woocommerce-memberships';
-                    $detected[] = 'woocommerce-subscriptions';
+                    $detected[] = 'restrict-content-pro';
                 }
-                $detected[] = 'woocommerce-smart-coupons';
             }
 
             // Shop pages: Load membership/restriction plugins for logged-in users
