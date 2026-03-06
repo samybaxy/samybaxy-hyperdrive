@@ -241,7 +241,8 @@ class SHYPDR_Early_Filter {
         // Fallback defaults
         return [
             'elementor', 'elementor-pro', 'jet-engine', 'jet-theme-core',
-            'jet-menu', 'jet-blocks', 'jet-elements', 'header-footer-code-manager', 'nitropack'
+            'jet-menu', 'jet-blocks', 'jet-elements', 'header-footer-code-manager', 'nitropack',
+            'presto-player', 'presto-player-pro'
         ];
     }
 
@@ -273,6 +274,19 @@ class SHYPDR_Early_Filter {
         // Step 1: Check pre-computed lookup table (O(1) hash lookup)
         // IMPORTANT: Merge with other detections, don't return early
         $lookup = self::get_lookup_table();
+
+        // Homepage detection: URI '/' yields empty slug after rtrim
+        // Try common front page slugs from the lookup table
+        if (empty($slug) && (empty($uri) || $uri === '/')) {
+            // Check common front page slugs in lookup table
+            foreach (['home', 'front-page', 'homepage', 'frontpage'] as $fp_slug) {
+                if (isset($lookup[$fp_slug])) {
+                    $detected = array_merge($detected, $lookup[$fp_slug]);
+                }
+            }
+            // Homepage/front page: always load media plugins (videos commonly on homepage)
+            $detected = array_merge($detected, self::get_media_plugins());
+        }
 
         if (!empty($slug) && isset($lookup[$slug])) {
             $detected = array_merge($detected, $lookup[$slug]);

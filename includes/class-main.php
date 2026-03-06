@@ -33,7 +33,7 @@ class SHYPDR_Main {
         }
 
         if (empty($essential)) {
-            $essential = ['elementor', 'jet-engine', 'jet-theme-core'];
+            $essential = ['elementor', 'jet-engine', 'jet-theme-core', 'presto-player', 'presto-player-pro'];
         }
 
         self::$essential_plugins_cache = $essential;

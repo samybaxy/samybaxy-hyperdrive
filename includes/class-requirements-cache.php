@@ -169,6 +169,19 @@ class SHYPDR_Requirements_Cache {
             }
         }
 
+        // Add front page to lookup table (homepage '/' has empty slug in MU-loader)
+        $front_page_id = get_option('page_on_front');
+        if ($front_page_id) {
+            $front_page = get_post($front_page_id);
+            if ($front_page && !empty($front_page->post_name)) {
+                $front_required = SHYPDR_Content_Analyzer::analyze_post($front_page_id);
+                if (!empty($front_required)) {
+                    $table[$front_page->post_name] = $front_required;
+                    $table['id:' . $front_page_id] = $front_required;
+                }
+            }
+        }
+
         update_option(self::LOOKUP_TABLE_OPTION, $table, false);
 
         return $count;
