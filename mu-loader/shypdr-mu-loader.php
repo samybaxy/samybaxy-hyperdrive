@@ -322,6 +322,7 @@ class SHYPDR_Early_Filter {
         if (self::is_user_logged_in_early()) {
             $detected[] = 'fluent-crm';
             $detected[] = 'fluentcrm-pro';
+            $detected[] = 'user-switching'; // Lightweight utility, always load for logged-in users
         }
 
         return array_unique($detected);
@@ -391,6 +392,15 @@ class SHYPDR_Early_Filter {
                     $detected[] = 'woocommerce-memberships';
                     $detected[] = 'restrict-content-pro';
                 }
+            }
+
+            // My Account page: Load account-related WooCommerce extensions
+            static $account_keywords = ['my-account'];
+            if (self::uri_contains_keyword($uri, $slug, $parent_slug, $account_keywords)) {
+                $detected[] = 'woocommerce-subscriptions';
+                $detected[] = 'woocommerce-smart-coupons';
+                $detected[] = 'woocommerce-memberships';
+                $detected[] = 'user-switching';
             }
 
             // Shop pages: Load membership/restriction plugins for logged-in users
