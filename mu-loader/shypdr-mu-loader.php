@@ -437,10 +437,19 @@ class SHYPDR_Early_Filter {
         }
 
         // Affiliate keywords (handles nested paths)
-        static $affiliate_keywords = ['affiliate', 'affiliates', 'referral', 'partner'];
+        static $affiliate_keywords = ['affiliate', 'affiliates', 'referral', 'partner', 'partner-dashboard'];
         if (self::uri_contains_keyword($uri, $slug, $parent_slug, $affiliate_keywords)) {
             $detected[] = 'affiliatewp';
             $detected[] = 'affiliate-wp';
+            // AffiliateWP addons (required for portal UI, multi-tier, payouts, etc.)
+            $detected[] = 'affiliatewp-affiliate-portal';
+            $detected[] = 'affiliate-wp-affiliate-portal';
+            $detected[] = 'affiliatewp-multi-tier-commissions';
+            $detected[] = 'affiliate-wp-multi-tier-commissions';
+            $detected[] = 'affiliatewp-paypal-payouts';
+            $detected[] = 'affiliate-wp-paypal-payouts';
+            // Our plugin (needed for debug hooks and content filtering)
+            $detected[] = 'rcp-content-filter-utility';
         }
 
         // Form keywords (handles nested paths)
@@ -804,6 +813,12 @@ class SHYPDR_Early_Filter {
             'fluent-forms-pro' => ['fluent-forms'],
             'fluentcrm-pro' => ['fluent-crm'],
             'uncanny-automator-pro' => ['uncanny-automator'],
+            'affiliatewp-affiliate-portal' => ['affiliatewp'],
+            'affiliate-wp-affiliate-portal' => ['affiliate-wp'],
+            'affiliatewp-multi-tier-commissions' => ['affiliatewp'],
+            'affiliate-wp-multi-tier-commissions' => ['affiliate-wp'],
+            'affiliatewp-paypal-payouts' => ['affiliatewp'],
+            'affiliate-wp-paypal-payouts' => ['affiliate-wp'],
         ];
 
         // Reverse dependencies (when parent is loaded, also load these children if active)
@@ -826,6 +841,14 @@ class SHYPDR_Early_Filter {
                 // are NOT here - they load based on page content/URL detection
             ],
             'elementor' => ['elementor-pro', 'the-plus-addons-for-elementor-page-builder'],
+            'affiliatewp' => [
+                'affiliatewp-affiliate-portal', 'affiliatewp-multi-tier-commissions',
+                'affiliatewp-paypal-payouts',
+            ],
+            'affiliate-wp' => [
+                'affiliate-wp-affiliate-portal', 'affiliate-wp-multi-tier-commissions',
+                'affiliate-wp-paypal-payouts',
+            ],
         ];
 
         // Build circular deps set for O(1) lookup
