@@ -1088,6 +1088,15 @@ class SHYPDR_Dependency_Detector {
     }
 
     /**
+     * Get known ecosystem relationships (parent => children)
+     *
+     * @return array
+     */
+    public static function get_known_ecosystems() {
+        return self::$known_ecosystems;
+    }
+
+    /**
      * Get dependency statistics
      *
      * @return array Statistics about dependencies

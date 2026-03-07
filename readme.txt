@@ -4,7 +4,7 @@ Donate link: https://github.com/samybaxy/samybaxy-hyperdrive/blob/main/DONATE.md
 Tags: performance, optimization, speed, caching, conditional-loading
 Requires at least: 6.4
 Tested up to: 6.9
-Stable tag: 6.0.2
+Stable tag: 6.1.0
 Requires PHP: 8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -14,7 +14,7 @@ Load only essential plugins per page for 65-75% faster WordPress sites through i
 == Description ==
 
 **Status:** Production Ready
-**Current Version:** 6.0.2
+**Current Version:** 6.1.0
 
 Samybaxy's Hyperdrive makes WordPress sites **65-75% faster** by intelligently loading only the plugins needed for each page.
 
@@ -304,6 +304,22 @@ Yes, the plugin supports WordPress multisite installations.
 7. GTMetrix score for Dev environment running Optimization with NitroPack and HyperDrive on WPEngine Host.
 
 == Changelog ==
+
+= 6.1.0 - March 7, 2026 =
+🏗️ Architecture Overhaul: Whitelist to Blacklist Model
+* 🔄 Breaking: MU-loader now uses blacklist architecture — loads everything by default, only restricts known-heavy plugins
+* ✨ New: Automatic restrictable plugin detection based on ecosystem analysis
+* ✨ New: DB-driven restriction rules — no more hardcoded keyword-to-plugin mappings
+* ✨ New: Lightweight plugins (user-switching, analytics, utilities) always load automatically
+* ✨ New: New plugins auto-load on frontend without code changes
+* ✨ New: Ecosystem child detection via dependency map and slug prefix matching
+* 🔧 Improved: Plugin scanner builds restrictable set on activation/deactivation
+* 🔧 Improved: Admin override support for manual restrictable/unrestricted lists
+* 🛡️ Safety: No restrictable set = no filtering (safe fallback)
+* 🛡️ Safety: Search pages load all ecosystems to prevent missing results
+* 🐛 Fixed: user-switching plugin no longer filtered out
+* 🐛 Fixed: WooCommerce extensions (subscriptions, coupons) load on my-account page
+* 🐛 Fixed: AffiliateWP addons load on affiliate/partner pages
 
 = 6.0.2 - February 5, 2026 =
 🔗 WordPress 6.5+ Plugin Dependencies Integration

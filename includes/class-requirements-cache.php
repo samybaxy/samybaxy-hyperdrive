@@ -253,4 +253,28 @@ class SHYPDR_Requirements_Cache {
     public static function clear() {
         delete_option(self::LOOKUP_TABLE_OPTION);
     }
+
+    /**
+     * Option names for restrictable data (consumed by MU-loader)
+     */
+    const RESTRICTABLE_OPTION = 'shypdr_restrictable_plugins';
+    const RESTRICTION_RULES_OPTION = 'shypdr_restriction_rules';
+
+    /**
+     * Get the restrictable plugins set (for MU-loader)
+     *
+     * @return array Plugin slugs that can be restricted
+     */
+    public static function get_restrictable_plugins() {
+        return get_option(self::RESTRICTABLE_OPTION, []);
+    }
+
+    /**
+     * Get the restriction rules (for MU-loader)
+     *
+     * @return array Ecosystem slug => rule definition
+     */
+    public static function get_restriction_rules() {
+        return get_option(self::RESTRICTION_RULES_OPTION, []);
+    }
 }

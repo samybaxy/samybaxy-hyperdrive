@@ -3,7 +3,7 @@
  * Plugin Name: Samybaxy's Hyperdrive
  * Plugin URI: https://github.com/samybaxy/samybaxy-hyperdrive
  * Description: Revolutionary plugin filtering - Load only essential plugins per page. Requires MU-plugin loader for actual performance gains.
- * Version: 6.0.2
+ * Version: 6.1.0
  * Author: samybaxy
  * Author URI: https://github.com/samybaxy
  * License: GPL v2 or later
@@ -21,7 +21,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Core initialization constants
-define('SHYPDR_VERSION', '6.0.2');
+define('SHYPDR_VERSION', '6.1.0');
 define('SHYPDR_DIR', plugin_dir_path(__FILE__));
 define('SHYPDR_URL', plugin_dir_url(__FILE__));
 define('SHYPDR_BASENAME', plugin_basename(__FILE__));
@@ -60,6 +60,11 @@ function shypdr_activation_handler() {
         SHYPDR_Dependency_Detector::rebuild_dependency_map();
     }
 
+    // Build restrictable set and restriction rules for MU-loader
+    if (class_exists('SHYPDR_Plugin_Scanner')) {
+        SHYPDR_Plugin_Scanner::rebuild_restrictable_data();
+    }
+
     // Store current version for upgrade detection
     update_option('shypdr_version', SHYPDR_VERSION);
 }
@@ -75,6 +80,11 @@ function shypdr_check_version_upgrade() {
         // This ensures WP 6.5+ Requires Plugins header data is picked up
         if (class_exists('SHYPDR_Dependency_Detector')) {
             SHYPDR_Dependency_Detector::rebuild_dependency_map();
+        }
+
+        // Rebuild restrictable set and restriction rules
+        if (class_exists('SHYPDR_Plugin_Scanner')) {
+            SHYPDR_Plugin_Scanner::rebuild_restrictable_data();
         }
 
         // Update MU-loader to latest version
@@ -196,6 +206,10 @@ function shypdr_uninstall_handler() {
     delete_option('shypdr_plugin_analysis');
     delete_option('shypdr_scan_completed');
     delete_option('shypdr_needs_setup');
+    delete_option('shypdr_restrictable_plugins');
+    delete_option('shypdr_restriction_rules');
+    delete_option('shypdr_manual_restrictable');
+    delete_option('shypdr_manual_unrestricted');
 
     // Clean up transients
     delete_transient('shypdr_logs');

@@ -2,33 +2,28 @@
 /**
  * Plugin Name: Samybaxy's Hyperdrive - MU Loader
  * Plugin URI: https://github.com/samybaxy/samybaxy-hyperdrive
- * Description: High-performance plugin filter that intercepts plugin loading before WordPress loads regular plugins. Requires the main Samybaxy's Hyperdrive plugin.
- * Version: 6.0.2
+ * Description: High-performance plugin filter using blacklist architecture. Loads everything by default, only restricts known-heavy plugins when not needed. Requires the main Samybaxy's Hyperdrive plugin.
+ * Version: 6.1.0
  * Author: samybaxy
  * Author URI: https://github.com/samybaxy
  * License: GPL v2 or later
  *
  * This file MUST be placed in wp-content/mu-plugins/ to work.
  *
- * PERFORMANCE OPTIMIZATIONS:
- * - Single database query for lookup table (O(1) amortized)
- * - Hash-based slug lookup (O(1))
- * - No regex in hot path for cached pages
- * - Minimal processing before WordPress loads
- * - Intelligent media plugin detection for rich content pages
+ * ARCHITECTURE (v6.1.0 - Blacklist Model):
+ * - Loads ALL plugins by default (safe)
+ * - Only restricts plugins in the "restrictable set" (built by scanner)
+ * - Restrictable plugins load when their URL/content conditions match
+ * - Lightweight plugins, page builders, utilities always load
+ * - No hardcoded plugin lists — everything is DB-driven
+ *
+ * PERFORMANCE:
+ * - 3 DB queries max (restrictable set, restriction rules, lookup table)
+ * - All cached in statics for request lifetime
+ * - O(1) hash lookups for URL matching
+ * - O(m) plugin filtering where m = active plugins
  *
  * @package SamybaxyHyperdrive
- *
- * CHANGELOG 6.0.2:
- * - Integrated WordPress 6.5+ Plugin Dependencies API for forward deps
- * - Fixed reverse dependency cascade (was loading all plugins)
- * - Curated reverse deps list: only jet-engine core UI and elementor-pro
- * - Added circular dependency protection
- *
- * CHANGELOG 6.0.1:
- * - Added get_payment_gateway_plugins() for dynamic payment gateway detection
- * - Fixed checkout page detection to use uri_contains_keyword()
- * - Made membership plugin loading conditional on logged-in users
  */
 
 // Prevent direct access
@@ -39,11 +34,10 @@ if (!defined('ABSPATH')) {
 // Define constants FIRST so main plugin knows MU-loader is installed
 if (!defined('SHYPDR_MU_LOADER_ACTIVE')) {
     define('SHYPDR_MU_LOADER_ACTIVE', true);
-    define('SHYPDR_MU_LOADER_VERSION', '6.0.2');
+    define('SHYPDR_MU_LOADER_VERSION', '6.1.0');
 }
 
 // CRITICAL: Never filter on admin, AJAX, REST, CRON, CLI
-// These checks are VERY fast (just constant checks)
 if (is_admin()) {
     return;
 }
@@ -52,8 +46,6 @@ if (defined('DOING_AJAX') && DOING_AJAX) {
     return;
 }
 
-// Note: REST_REQUEST constant isn't defined yet at MU-plugin load time
-// We detect REST requests via URL below instead
 if (defined('REST_REQUEST') && REST_REQUEST) {
     return;
 }
@@ -72,10 +64,10 @@ if (defined('WP_CLI') && WP_CLI) {
 $shypdr_request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
 if (strpos($shypdr_request_uri, '/wp-admin') !== false ||
     strpos($shypdr_request_uri, '/wp-login') !== false ||
-    strpos($shypdr_request_uri, '/wp-json/') !== false ||    // REST API - CRITICAL for WooCommerce Blocks
-    strpos($shypdr_request_uri, 'rest_route=') !== false ||  // REST API alternate format
-    strpos($shypdr_request_uri, 'admin-ajax.php') !== false || // AJAX - CRITICAL for Elementor checkout
-    strpos($shypdr_request_uri, 'wc-ajax=') !== false ||     // WooCommerce AJAX (checkout, cart updates)
+    strpos($shypdr_request_uri, '/wp-json/') !== false ||
+    strpos($shypdr_request_uri, 'rest_route=') !== false ||
+    strpos($shypdr_request_uri, 'admin-ajax.php') !== false ||
+    strpos($shypdr_request_uri, 'wc-ajax=') !== false ||
     strpos($shypdr_request_uri, 'wp-activate.php') !== false ||
     strpos($shypdr_request_uri, 'wp-signup.php') !== false ||
     strpos($shypdr_request_uri, 'xmlrpc.php') !== false) {
@@ -91,7 +83,7 @@ if ($shypdr_action && in_array($shypdr_action, ['activate', 'deactivate', 'activ
 
 // Check if filtering is enabled (single DB query)
 global $wpdb;
-// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
+// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available
 $shypdr_enabled = $wpdb->get_var(
     $wpdb->prepare(
         "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
@@ -104,30 +96,34 @@ if ( '1' !== $shypdr_enabled ) {
 }
 
 /**
- * High-Performance Plugin Filter
+ * Blacklist-Based Plugin Filter
  *
- * Time Complexity:
- * - Lookup table fetch: O(1) amortized (cached in static)
- * - Slug extraction: O(n) where n = URL length (typically < 100 chars)
- * - Hash lookup: O(1)
- * - Plugin filtering: O(m) where m = number of active plugins
+ * Instead of whitelisting what to load, this blacklists what to RESTRICT.
+ * Everything loads by default. Only known-heavy ecosystems get conditionally
+ * restricted when their page conditions aren't met.
  *
- * Total: O(m) per request, which is optimal since we must iterate plugins anyway
+ * Data sources (all DB-driven, built by main plugin's scanner):
+ * - shypdr_restrictable_plugins: slugs that CAN be restricted
+ * - shypdr_restriction_rules: ecosystem => conditions for loading
+ * - shypdr_url_requirements: per-page plugin requirements (content-analyzed)
+ * - shypdr_dependency_map: plugin dependency graph
  */
 class SHYPDR_Early_Filter {
 
     private static $filtered = false;
     private static $original_count = 0;
     private static $filtered_count = 0;
-    private static $essential_plugins = [];
     private static $loaded_plugins = [];
     private static $filtering_active = false;
-    private static $detected_plugins = [];
+    private static $restricted_plugins = [];
+    private static $needed_plugins = [];
     private static $original_plugins = [];
 
-    // Cache these for the entire request
+    // DB-driven caches (populated once per request)
+    private static $restrictable_set = null;
+    private static $restriction_rules = null;
     private static $lookup_table = null;
-    private static $post_type_requirements = null;
+    private static $dependency_map = null;
 
     /**
      * Initialize early filtering
@@ -139,7 +135,10 @@ class SHYPDR_Early_Filter {
     }
 
     /**
-     * Filter active plugins before WordPress loads them
+     * Filter active plugins using blacklist architecture
+     *
+     * Logic: load everything EXCEPT restrictable plugins whose
+     * page conditions are NOT met.
      */
     public static function filter_plugins($plugins) {
         // Recursion guard
@@ -161,10 +160,11 @@ class SHYPDR_Early_Filter {
         self::$original_plugins = $plugins;
 
         try {
-            // Step 1: Get essential plugins (O(1) - cached)
-            self::$essential_plugins = self::get_essential_plugins();
+            // Step 1: Get restrictable set from DB
+            $restrictable = self::get_restrictable_set();
 
-            if (empty(self::$essential_plugins)) {
+            // SAFE DEFAULT: No restrictable set = no filtering
+            if (empty($restrictable)) {
                 self::$loaded_plugins = $plugins;
                 self::$filtered_count = 0;
                 self::$filtered = true;
@@ -172,31 +172,33 @@ class SHYPDR_Early_Filter {
                 return $plugins;
             }
 
-            // Step 2: Detect page-specific requirements (O(1) lookup + O(n) URL parsing)
-            self::$detected_plugins = self::detect_required_plugins_fast();
+            // Step 2: Determine which restrictable plugins ARE needed on this page
+            $needed = self::detect_needed_plugins();
 
-            // Step 3: Merge essential + detected
-            $required_slugs = array_unique(array_merge(
-                self::$essential_plugins,
-                self::$detected_plugins
-            ));
+            // Step 3: Expand needed set with dependencies
+            // If woocommerce is needed, all its children are also needed
+            $needed = self::expand_with_children($needed, $plugins);
 
-            // Always include samybaxy-hyperdrive
-            $required_slugs[] = 'samybaxy-hyperdrive';
+            self::$needed_plugins = $needed;
 
-            // Step 4: Resolve dependencies (O(k) where k = required plugins)
-            $to_load = self::resolve_dependencies($required_slugs, $plugins);
+            // Step 4: Build restriction set = restrictable - needed
+            $restrictable_flip = array_flip($restrictable);
+            $needed_flip = array_flip($needed);
+            $restrict_set = array_diff_key($restrictable_flip, $needed_flip);
 
-            // Step 5: Filter plugins (O(m) where m = active plugins)
-            $to_load_set = array_flip($to_load); // Convert to set for O(1) lookup
-
+            // Step 5: Filter — remove only restricted plugins, keep everything else
             $filtered_plugins = [];
+            $restricted_list = [];
             foreach ($plugins as $plugin_path) {
                 $slug = self::get_plugin_slug($plugin_path);
-                if (isset($to_load_set[$slug]) || isset($to_load_set[$plugin_path])) {
+                if (isset($restrict_set[$slug])) {
+                    $restricted_list[] = $slug;
+                } else {
                     $filtered_plugins[] = $plugin_path;
                 }
             }
+
+            self::$restricted_plugins = $restricted_list;
 
             // Safety: Never return fewer than 3 plugins
             if (count($filtered_plugins) < 3) {
@@ -218,132 +220,161 @@ class SHYPDR_Early_Filter {
     }
 
     /**
-     * Get essential plugins from database
-     */
-    private static function get_essential_plugins() {
-        global $wpdb;
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
-        $essential = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                'shypdr_essential_plugins'
-            )
-        );
-
-        if ($essential) {
-            $essential = maybe_unserialize($essential);
-            if (is_array($essential) && !empty($essential)) {
-                return $essential;
-            }
-        }
-
-        // Fallback defaults
-        return [
-            'elementor', 'elementor-pro', 'jet-engine', 'jet-theme-core',
-            'jet-menu', 'jet-blocks', 'jet-elements', 'header-footer-code-manager', 'nitropack',
-            'presto-player', 'presto-player-pro'
-        ];
-    }
-
-    /**
-     * HIGH-PERFORMANCE page requirement detection
+     * Detect which restrictable plugins are needed on this page.
      *
-     * Strategy:
-     * 1. Extract URL slug (O(n) string operations)
-     * 2. Check cached lookup table (O(1) hash lookup) - MERGE with other detections
-     * 3. Fallback to post type detection (O(1) hash lookup)
-     * 4. Add lightweight URL keyword patterns
-     * 5. Always merge all sources for comprehensive coverage
+     * Checks:
+     * 1. URL lookup table (content-analyzed per-page requirements)
+     * 2. Restriction rules (keyword/URL matching)
+     * 3. Search query detection
+     *
+     * @return array Plugin slugs needed on this page
      */
-    private static function detect_required_plugins_fast() {
-        global $wpdb;
-        $detected = [];
+    private static function detect_needed_plugins() {
+        $needed = [];
         // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- Read-only URL parsing for plugin detection
         $request_uri = isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : '';
 
-        // Normalize and extract slug (fast string operations)
+        // Normalize and extract slug
         $uri = strtok($request_uri, '?');
         $uri = rtrim($uri, '/');
         $parts = explode('/', $uri);
         $slug = end($parts);
-
-        // Parent slug for hierarchical pages
         $parent_slug = count($parts) > 1 ? $parts[count($parts) - 2] : '';
 
-        // Step 1: Check pre-computed lookup table (O(1) hash lookup)
-        // IMPORTANT: Merge with other detections, don't return early
+        // --- Source 1: Content-analyzed lookup table ---
         $lookup = self::get_lookup_table();
 
-        // Homepage detection: URI '/' yields empty slug after rtrim
-        // Try common front page slugs from the lookup table
+        // Homepage detection
         if (empty($slug) && (empty($uri) || $uri === '/')) {
-            // Check common front page slugs in lookup table
             foreach (['home', 'front-page', 'homepage', 'frontpage'] as $fp_slug) {
                 if (isset($lookup[$fp_slug])) {
-                    $detected = array_merge($detected, $lookup[$fp_slug]);
+                    $needed = array_merge($needed, $lookup[$fp_slug]);
                 }
             }
-            // Homepage/front page: always load media plugins (videos commonly on homepage)
-            $detected = array_merge($detected, self::get_media_plugins());
         }
 
+        // Slug match
         if (!empty($slug) && isset($lookup[$slug])) {
-            $detected = array_merge($detected, $lookup[$slug]);
+            $needed = array_merge($needed, $lookup[$slug]);
         }
 
-        // Check by path for hierarchical pages
+        // Path match for hierarchical pages
         $path_key = 'path:' . trim($uri, '/');
         if (isset($lookup[$path_key])) {
-            $detected = array_merge($detected, $lookup[$path_key]);
+            $needed = array_merge($needed, $lookup[$path_key]);
         }
 
-        // Also check by post ID if available in lookup
-        $id_key = 'id:' . ($slug ?: '');
-        if (isset($lookup[$id_key])) {
-            $detected = array_merge($detected, $lookup[$id_key]);
-        }
+        // --- Source 2: Restriction rules (keyword matching) ---
+        $rules = self::get_restriction_rules();
 
-        // Step 2: Check post type from query vars (if available)
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only plugin detection, no actions performed
-        if (isset($_GET['post_type'])) {
-            $pt_requirements = self::get_post_type_requirements();
-            // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only plugin detection, no actions performed
-            $post_type = sanitize_key(wp_unslash($_GET['post_type']));
-            if (isset($pt_requirements[$post_type])) {
-                $detected = array_merge($detected, $pt_requirements[$post_type]);
+        foreach ($rules as $ecosystem_slug => $rule) {
+            // Skip logged_in_only rules for logged-out users
+            if (!empty($rule['logged_in_only']) && !self::is_user_logged_in_early()) {
+                continue;
+            }
+
+            // Check keywords against URI
+            if (!empty($rule['keywords'])) {
+                if (self::uri_matches_keywords($uri, $slug, $parent_slug, $rule['keywords'])) {
+                    $needed[] = $ecosystem_slug;
+                }
             }
         }
 
-        // Step 3: Fast keyword detection (always run to catch related plugins)
-        $detected = array_merge($detected, self::detect_from_keywords($uri, $slug, $parent_slug));
-
-        // Step 4: User state detection
-        if (self::is_user_logged_in_early()) {
-            $detected[] = 'fluent-crm';
-            $detected[] = 'fluentcrm-pro';
-            $detected[] = 'user-switching'; // Lightweight utility, always load for logged-in users
+        // --- Source 3: Search detection ---
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only plugin detection
+        if (isset($_GET['s']) || strpos($uri, '/search/') !== false) {
+            // Search pages may need various ecosystems — load all restrictable
+            // that have content on the site. This is a broad match but safe.
+            $needed = array_merge($needed, array_keys($rules));
         }
 
-        return array_unique($detected);
+        return array_unique($needed);
     }
 
     /**
-     * Helper: Check if URI contains any keyword (handles nested paths)
+     * Expand a "needed" set to include all ecosystem children.
+     *
+     * If woocommerce is needed, also include woocommerce-subscriptions,
+     * woocommerce-memberships, jet-woo-builder, etc.
+     *
+     * Uses the dependency map to resolve parent→child relationships.
+     *
+     * @param array $needed Plugin slugs that are needed
+     * @param array $active_plugins Full list of active plugin paths
+     * @return array Expanded needed set
+     */
+    private static function expand_with_children($needed, $active_plugins) {
+        $dep_map = self::get_dependency_map();
+        $needed_set = array_flip($needed);
+
+        // Build active slugs set
+        $active_slugs = [];
+        foreach ($active_plugins as $plugin_path) {
+            $active_slugs[] = self::get_plugin_slug($plugin_path);
+        }
+        $active_set = array_flip($active_slugs);
+
+        // For each needed ecosystem parent, find children via dependency map
+        // A child is any plugin whose depends_on includes a needed parent
+        foreach ($dep_map as $child_slug => $data) {
+            if (isset($needed_set[$child_slug])) {
+                continue; // Already needed
+            }
+            if (!isset($active_set[$child_slug])) {
+                continue; // Not active
+            }
+            if (!empty($data['depends_on'])) {
+                foreach ($data['depends_on'] as $dep) {
+                    if (isset($needed_set[$dep])) {
+                        $needed_set[$child_slug] = true;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Also do prefix-based child detection for plugins not in the dep map
+        // e.g., "woocommerce-subscriptions" starts with "woocommerce-"
+        foreach ($active_slugs as $active_slug) {
+            if (isset($needed_set[$active_slug])) {
+                continue;
+            }
+            foreach ($needed as $parent) {
+                if (strpos($active_slug, $parent . '-') === 0 ||
+                    strpos($active_slug, $parent . '_') === 0) {
+                    $needed_set[$active_slug] = true;
+                    break;
+                }
+            }
+            // Also check woo-/wc- prefixes for WooCommerce children
+            if (isset($needed_set['woocommerce'])) {
+                if (strpos($active_slug, 'woo-') === 0 || strpos($active_slug, 'wc-') === 0) {
+                    $needed_set[$active_slug] = true;
+                }
+                if (strpos($active_slug, 'jet-woo') === 0) {
+                    $needed_set[$active_slug] = true;
+                }
+            }
+        }
+
+        return array_keys($needed_set);
+    }
+
+    /**
+     * Check if URI matches any keyword (handles nested paths)
      *
      * @param string $uri Full URI path
      * @param string $slug Last segment of URI
-     * @param string $parent_slug Second-to-last segment of URI
-     * @param array  $keywords Keywords to check for
-     * @return bool True if any keyword found
+     * @param string $parent_slug Second-to-last segment
+     * @param array  $keywords Keywords to check
+     * @return bool
      */
-    private static function uri_contains_keyword($uri, $slug, $parent_slug, $keywords) {
-        // Check slug and parent_slug first (fastest)
+    private static function uri_matches_keywords($uri, $slug, $parent_slug, $keywords) {
         if (in_array($slug, $keywords, true) || in_array($parent_slug, $keywords, true)) {
             return true;
         }
 
-        // Check if keyword appears anywhere in URI path (handles /console/shop/, etc.)
         foreach ($keywords as $keyword) {
             if (strpos($uri, '/' . $keyword) !== false ||
                 strpos($uri, $keyword . '/') !== false ||
@@ -356,153 +387,75 @@ class SHYPDR_Early_Filter {
     }
 
     /**
-     * Fast keyword-based detection (O(1) per keyword check)
-     *
-     * @param string $uri Full URI path (e.g., 'console/shop' or 'shop')
-     * @param string $slug Last segment of URI
-     * @param string $parent_slug Second-to-last segment of URI
+     * Check if user is logged in (cookie check)
      */
-    private static function detect_from_keywords($uri, $slug, $parent_slug) {
-        $detected = [];
-
-        // WooCommerce keywords (handles nested paths like /console/shop/, etc.)
-        static $woo_keywords = ['shop', 'product', 'products', 'cart', 'checkout', 'my-account', 'order-received', 'order-pay'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $woo_keywords)) {
-            $detected[] = 'woocommerce';
-            $detected[] = 'jet-woo-builder';
-            $detected[] = 'jet-woo-product-gallery';
-            $detected[] = 'jet-smart-filters'; // CRITICAL FIX: Required for category filters and search widgets on shop pages
-
-            // Checkout/Cart pages: Load payment gateways and checkout essentials
-            // CRITICAL: Payment gateways and related plugins MUST be loaded for checkout to work
-            static $checkout_keywords = ['cart', 'checkout', 'order-pay', 'order-received'];
-            if (self::uri_contains_keyword($uri, $slug, $parent_slug, $checkout_keywords)) {
-                // Dynamically detect active payment gateway plugins
-                $detected = array_merge($detected, self::get_payment_gateway_plugins());
-
-                // Essential checkout plugins (always load on checkout)
-                $detected[] = 'woocommerce-services';          // WooCommerce Services (shipping labels, taxes)
-                $detected[] = 'woocommerce-product-bundles';   // Product Bundles support
-                $detected[] = 'woocommerce-smart-coupons';     // Coupons/gift cards
-                $detected[] = 'woocommerce-subscriptions';     // Subscriptions (needed for recurring)
-                $detected[] = 'woocommerce-legacy-rest-api';   // Legacy REST API (some gateways need this)
-
-                // Membership plugins (only if user is logged in)
-                if (self::is_user_logged_in_early()) {
-                    $detected[] = 'woocommerce-memberships';
-                    $detected[] = 'restrict-content-pro';
-                }
-            }
-
-            // My Account page: Load account-related WooCommerce extensions
-            static $account_keywords = ['my-account'];
-            if (self::uri_contains_keyword($uri, $slug, $parent_slug, $account_keywords)) {
-                $detected[] = 'woocommerce-subscriptions';
-                $detected[] = 'woocommerce-smart-coupons';
-                $detected[] = 'woocommerce-memberships';
-                $detected[] = 'user-switching';
-            }
-
-            // Shop pages: Load membership/restriction plugins for logged-in users
-            // (Required for member pricing, restricted products, subscription products)
-            // Check for shop/product/products anywhere in the URI path
-            if (self::is_user_logged_in_early() &&
-                ($slug === 'shop' || $slug === 'product' || $slug === 'products' ||
-                 strpos($uri, '/shop') !== false || strpos($uri, '/product') !== false)) {
-                $detected[] = 'woocommerce-memberships';
-                $detected[] = 'woocommerce-subscriptions';
-                $detected[] = 'restrict-content-pro';
-                $detected[] = 'restrict-content';
-                $detected[] = 'rcp-content-filter-utility';
-            }
-
-            // Shop pages commonly have media content - add media player plugins
-            // Check for shop/product/products anywhere in the URI path
-            if ($slug === 'shop' || $slug === 'product' || $slug === 'products' ||
-                strpos($uri, '/shop') !== false || strpos($uri, '/product') !== false) {
-                $detected = array_merge($detected, self::get_media_plugins());
+    private static function is_user_logged_in_early() {
+        foreach ($_COOKIE as $name => $value) {
+            if (strpos($name, 'wordpress_logged_in_') === 0) {
+                return true;
             }
         }
-
-        // LearnPress keywords (handles nested paths)
-        static $lp_keywords = ['courses', 'course', 'lessons', 'lesson', 'quiz', 'quizzes', 'instructor', 'become-instructor'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $lp_keywords) || strpos($uri, '/lp-') !== false) {
-            $detected[] = 'learnpress';
-            // Courses commonly have video content
-            $detected = array_merge($detected, self::get_media_plugins());
-        }
-
-        // Membership keywords (handles nested paths)
-        static $member_keywords = ['members', 'member', 'account', 'subscription', 'register', 'login', 'profile', 'dashboard', 'collections'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $member_keywords)) {
-            $detected[] = 'restrict-content-pro';
-            $detected[] = 'rcp-content-filter-utility';
-        }
-
-        // JetEngine keywords (handles nested paths)
-        static $jetengine_keywords = ['collections'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $jetengine_keywords)) {
-            $detected[] = 'jet-engine';
-            $detected[] = 'jet-style-manager';
-        }
-
-        // Affiliate keywords (handles nested paths)
-        static $affiliate_keywords = ['affiliate', 'affiliates', 'referral', 'partner', 'partner-dashboard'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $affiliate_keywords)) {
-            $detected[] = 'affiliatewp';
-            $detected[] = 'affiliate-wp';
-            // AffiliateWP addons (required for portal UI, multi-tier, payouts, etc.)
-            $detected[] = 'affiliatewp-affiliate-portal';
-            $detected[] = 'affiliate-wp-affiliate-portal';
-            $detected[] = 'affiliatewp-multi-tier-commissions';
-            $detected[] = 'affiliate-wp-multi-tier-commissions';
-            $detected[] = 'affiliatewp-paypal-payouts';
-            $detected[] = 'affiliate-wp-paypal-payouts';
-            // Our plugin (needed for debug hooks and content filtering)
-            $detected[] = 'rcp-content-filter-utility';
-        }
-
-        // Form keywords (handles nested paths)
-        static $form_keywords = ['contact', 'form', 'apply', 'submit', 'booking', 'appointment', 'schedule'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $form_keywords)) {
-            $detected[] = 'fluentform';
-            $detected[] = 'fluentformpro';
-            $detected[] = 'jetformbuilder';
-        }
-
-        // Blog/Archive keywords (handles nested paths)
-        static $blog_keywords = ['blog', 'news', 'articles', 'article', 'posts'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $blog_keywords) || strpos($uri, '/category/') !== false || strpos($uri, '/tag/') !== false) {
-            $detected[] = 'jet-blog';
-            $detected[] = 'jet-smart-filters';
-            // Blog posts commonly have embedded videos
-            $detected = array_merge($detected, self::get_media_plugins());
-        }
-
-        // Search detection
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only plugin detection, no actions performed
-        if (isset($_GET['s']) || strpos($uri, '/search/') !== false) {
-            $detected[] = 'jet-search';
-            $detected[] = 'jet-smart-filters';
-        }
-
-        // Events keywords (handles nested paths)
-        static $event_keywords = ['events', 'event', 'calendar', 'tribe-events'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $event_keywords)) {
-            $detected[] = 'the-events-calendar';
-        }
-
-        // Forum keywords (handles nested paths)
-        static $forum_keywords = ['forums', 'forum', 'topics', 'topic', 'community', 'discussion'];
-        if (self::uri_contains_keyword($uri, $slug, $parent_slug, $forum_keywords)) {
-            $detected[] = 'bbpress';
-        }
-
-        return $detected;
+        return false;
     }
 
     /**
-     * Get lookup table (cached for request lifetime)
+     * Get restrictable set from DB (cached)
+     */
+    private static function get_restrictable_set() {
+        if (self::$restrictable_set !== null) {
+            return self::$restrictable_set;
+        }
+
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+                'shypdr_restrictable_plugins'
+            )
+        );
+
+        if ($result) {
+            self::$restrictable_set = maybe_unserialize($result);
+            if (is_array(self::$restrictable_set)) {
+                return self::$restrictable_set;
+            }
+        }
+
+        self::$restrictable_set = [];
+        return self::$restrictable_set;
+    }
+
+    /**
+     * Get restriction rules from DB (cached)
+     */
+    private static function get_restriction_rules() {
+        if (self::$restriction_rules !== null) {
+            return self::$restriction_rules;
+        }
+
+        global $wpdb;
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = $wpdb->get_var(
+            $wpdb->prepare(
+                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
+                'shypdr_restriction_rules'
+            )
+        );
+
+        if ($result) {
+            self::$restriction_rules = maybe_unserialize($result);
+            if (is_array(self::$restriction_rules)) {
+                return self::$restriction_rules;
+            }
+        }
+
+        self::$restriction_rules = [];
+        return self::$restriction_rules;
+    }
+
+    /**
+     * Get URL lookup table from DB (cached)
      */
     private static function get_lookup_table() {
         if (self::$lookup_table !== null) {
@@ -510,8 +463,7 @@ class SHYPDR_Early_Filter {
         }
 
         global $wpdb;
-
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $result = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
@@ -531,414 +483,35 @@ class SHYPDR_Early_Filter {
     }
 
     /**
-     * Get post type requirements (cached for request lifetime)
+     * Get dependency map from DB (cached)
      */
-    private static function get_post_type_requirements() {
-        if (self::$post_type_requirements !== null) {
-            return self::$post_type_requirements;
+    private static function get_dependency_map() {
+        if (self::$dependency_map !== null) {
+            return self::$dependency_map;
         }
 
-        // Default mappings (no DB query needed)
-        self::$post_type_requirements = [
-            'product' => ['woocommerce', 'jet-woo-builder', 'jet-woo-product-gallery'],
-            'lp_course' => ['learnpress'],
-            'lp_lesson' => ['learnpress'],
-            'lp_quiz' => ['learnpress'],
-            'tribe_events' => ['the-events-calendar'],
-            'forum' => ['bbpress'],
-            'topic' => ['bbpress'],
-        ];
-
-        return self::$post_type_requirements;
-    }
-
-    /**
-     * Check if user is logged in (cookie check - O(n) where n = cookie count)
-     */
-    private static function is_user_logged_in_early() {
-        foreach ($_COOKIE as $name => $value) {
-            if (strpos($name, 'wordpress_logged_in_') === 0) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Get active payment gateway plugins
-     * CRITICAL: Dynamically detects ALL payment gateway plugins for checkout pages
-     *
-     * @return array Active payment gateway plugin slugs
-     */
-    private static function get_payment_gateway_plugins() {
-        static $payment_plugins = null;
-
-        if ($payment_plugins !== null) {
-            return $payment_plugins;
-        }
-
-        $payment_plugins = [];
-
-        // Known payment gateway plugin patterns
-        static $known_payment_plugins = [
-            // Stripe variations
-            'woocommerce-gateway-stripe',
-            'woocommerce-stripe-gateway',
-            'stripe',
-            'stripe-for-woocommerce',
-            'stripe-payments',
-            'wp-stripe',
-            // PayPal variations
-            'woocommerce-paypal-payments',
-            'woocommerce-gateway-paypal-express-checkout',
-            'paypal-for-woocommerce',
-            'woo-paypal',
-            // Other common gateways
-            'woo-paystack',
-            'paystack',
-            'woocommerce-payments',
-            'woo-payments',
-            'square',
-            'woocommerce-square',
-            'authorize-net',
-            'woocommerce-gateway-authorize-net-cim',
-            'braintree',
-            'woocommerce-gateway-braintree',
-            'mollie-payments-for-woocommerce',
-            'klarna',
-            'afterpay',
-            'affirm',
-            'razorpay',
-            'woo-razorpay',
-            'flutterwave',
-        ];
-
-        // Get active plugins from database
         global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
-        $active = $wpdb->get_var(
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
+        $result = $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                'active_plugins'
+                'shypdr_dependency_map'
             )
         );
 
-        if ($active) {
-            $active = maybe_unserialize($active);
-            if (is_array($active)) {
-                foreach ($active as $plugin_path) {
-                    $slug = strpos($plugin_path, '/') !== false
-                        ? substr($plugin_path, 0, strpos($plugin_path, '/'))
-                        : $plugin_path;
-
-                    // Check if this is a known payment plugin
-                    if (in_array($slug, $known_payment_plugins, true)) {
-                        $payment_plugins[] = $slug;
-                        continue;
-                    }
-
-                    // Heuristic: Check for payment/gateway/stripe/paypal in slug name
-                    if (strpos($slug, 'payment') !== false ||
-                        strpos($slug, 'gateway') !== false ||
-                        strpos($slug, 'stripe') !== false ||
-                        strpos($slug, 'paypal') !== false ||
-                        strpos($slug, 'checkout') !== false ||
-                        strpos($slug, 'pay') !== false) {
-                        if (!in_array($slug, $payment_plugins, true)) {
-                            $payment_plugins[] = $slug;
-                        }
-                    }
-                }
+        if ($result) {
+            self::$dependency_map = maybe_unserialize($result);
+            if (is_array(self::$dependency_map)) {
+                return self::$dependency_map;
             }
         }
 
-        return $payment_plugins;
+        self::$dependency_map = [];
+        return self::$dependency_map;
     }
 
     /**
-     * Get active media/video player plugins
-     * Intelligently detects which media plugins are actually active
-     *
-     * @return array Active media plugin slugs
-     */
-    private static function get_media_plugins() {
-        static $media_plugins = null;
-
-        if ($media_plugins !== null) {
-            return $media_plugins;
-        }
-
-        $media_plugins = [];
-
-        // Known media player plugin prefixes/slugs
-        static $known_media_plugins = [
-            'presto-player',
-            'presto-player-pro',
-            'embedpress',
-            'embed-press',
-            'video-player',
-            'videopack',
-            'jetvideo',
-            'jet-video',
-            'mediaelement',
-            'player',
-            'mediavine',
-            'flavor',
-            'flavor-player',
-            'flavor-video'
-        ];
-
-        // Get active plugins from database
-        global $wpdb;
-        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- MU-loader runs before Options API available, direct query required
-        $active = $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                'active_plugins'
-            )
-        );
-
-        if ($active) {
-            $active = maybe_unserialize($active);
-            if (is_array($active)) {
-                foreach ($active as $plugin_path) {
-                    $slug = strpos($plugin_path, '/') !== false
-                        ? substr($plugin_path, 0, strpos($plugin_path, '/'))
-                        : $plugin_path;
-
-                    // Check if this is a known media plugin
-                    foreach ($known_media_plugins as $media_slug) {
-                        if ($slug === $media_slug || strpos($slug, $media_slug) === 0) {
-                            $media_plugins[] = $slug;
-                            break;
-                        }
-                    }
-
-                    // Also check for video/media/player in slug name
-                    if (strpos($slug, 'video') !== false ||
-                        strpos($slug, 'player') !== false ||
-                        strpos($slug, 'media') !== false) {
-                        if (!in_array($slug, $media_plugins, true)) {
-                            $media_plugins[] = $slug;
-                        }
-                    }
-                }
-            }
-        }
-
-        return $media_plugins;
-    }
-
-    /**
-     * Resolve plugin dependencies with circular dependency protection
-     *
-     * Time Complexity: O(k + e) where k = plugins to process, e = edges traversed
-     * Space Complexity: O(k) for the queue and result set
-     *
-     * Uses database-stored dependency map when available (built by main plugin),
-     * falls back to static hardcoded maps for performance when DB isn't ready.
-     */
-    private static function resolve_dependencies($required_slugs, $active_plugins) {
-        // Try to get dependency map from database first (built by main plugin)
-        // This includes WP 6.5+ Requires Plugins header data
-        static $db_dependency_map = null;
-        static $db_circular_deps = null;
-
-        if (null === $db_dependency_map) {
-            global $wpdb;
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $result = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                    'shypdr_dependency_map'
-                )
-            );
-            if ($result) {
-                $db_dependency_map = maybe_unserialize($result);
-            }
-            if (!is_array($db_dependency_map)) {
-                $db_dependency_map = [];
-            }
-
-            // Also get circular dependencies
-            // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
-            $circular_result = $wpdb->get_var(
-                $wpdb->prepare(
-                    "SELECT option_value FROM {$wpdb->options} WHERE option_name = %s LIMIT 1",
-                    'shypdr_circular_dependencies'
-                )
-            );
-            if ($circular_result) {
-                $db_circular_deps = maybe_unserialize($circular_result);
-            }
-            if (!is_array($db_circular_deps)) {
-                $db_circular_deps = [];
-            }
-        }
-
-        // Fallback static dependency map (used when DB map is empty)
-        static $fallback_dependencies = [
-            'jet-menu' => ['jet-engine'],
-            'jet-blocks' => ['jet-engine'],
-            'jet-elements' => ['jet-engine'],
-            'jet-tabs' => ['jet-engine'],
-            'jet-popup' => ['jet-engine'],
-            'jet-blog' => ['jet-engine'],
-            'jet-search' => ['jet-engine'],
-            'jet-reviews' => ['jet-engine'],
-            'jet-smart-filters' => ['jet-engine'],
-            'jet-compare-wishlist' => ['jet-engine'],
-            'jet-tricks' => ['jet-engine'],
-            'jet-woo-builder' => ['jet-engine', 'woocommerce'],
-            'jet-woo-product-gallery' => ['jet-engine', 'woocommerce'],
-            'jet-theme-core' => ['jet-engine'],
-            'jetformbuilder' => ['jet-engine'],
-            // JetEngine Extensions
-            'jet-engine-trim-callback' => ['jet-engine'],
-            'jet-engine-attachment-link-callback' => ['jet-engine'],
-            'jet-engine-custom-visibility-conditions' => ['jet-engine'],
-            'jet-engine-dynamic-charts-module' => ['jet-engine'],
-            'jet-engine-dynamic-tables-module' => ['jet-engine'],
-            'jet-engine-items-number-filter' => ['jet-engine'],
-            'jet-engine-layout-switcher' => ['jet-engine'],
-            'jet-engine-post-expiration-period' => ['jet-engine'],
-            'elementor-pro' => ['elementor'],
-            'the-plus-addons-for-elementor-page-builder' => ['elementor'],
-            'thim-elementor-kit' => ['elementor'],
-            'woocommerce-memberships' => ['woocommerce'],
-            'woocommerce-subscriptions' => ['woocommerce'],
-            'woocommerce-product-bundles' => ['woocommerce'],
-            'woocommerce-smart-coupons' => ['woocommerce'],
-            'woocommerce-stripe-gateway' => ['woocommerce'],
-            'woocommerce-gateway-stripe' => ['woocommerce'],
-            'stripe' => ['woocommerce'],
-            'stripe-for-woocommerce' => ['woocommerce'],
-            'stripe-payments' => ['woocommerce'],
-            'woocommerce-payments' => ['woocommerce'],
-            'woocommerce-paypal-payments' => ['woocommerce'],
-            'woo-paystack' => ['woocommerce'],
-            'paystack' => ['woocommerce'],
-            'rcp-content-filter-utility' => ['restrict-content-pro'],
-            'fluentformpro' => ['fluentform'],
-            'fluent-forms-pro' => ['fluent-forms'],
-            'fluentcrm-pro' => ['fluent-crm'],
-            'uncanny-automator-pro' => ['uncanny-automator'],
-            'affiliatewp-affiliate-portal' => ['affiliatewp'],
-            'affiliate-wp-affiliate-portal' => ['affiliate-wp'],
-            'affiliatewp-multi-tier-commissions' => ['affiliatewp'],
-            'affiliate-wp-multi-tier-commissions' => ['affiliate-wp'],
-            'affiliatewp-paypal-payouts' => ['affiliatewp'],
-            'affiliate-wp-paypal-payouts' => ['affiliate-wp'],
-        ];
-
-        // Reverse dependencies (when parent is loaded, also load these children if active)
-        // IMPORTANT: This is a CURATED list - only include plugins that are needed for
-        // core site functionality (menus, theme, UI). Do NOT include plugins that would
-        // cascade to load other ecosystems (e.g., jet-woo-builder loads woocommerce).
-        // WooCommerce-related plugins are loaded via URL/content detection, not here.
-        static $fallback_reverse_deps = [
-            'jet-engine' => [
-                // Core UI/Theme plugins - always needed for site appearance
-                'jet-menu', 'jet-blocks', 'jet-theme-core', 'jet-elements', 'jet-tabs',
-                'jet-popup', 'jet-tricks', 'jet-style-manager',
-                // JetEngine Extensions - small utilities, no external deps
-                'jet-engine-trim-callback', 'jet-engine-attachment-link-callback',
-                'jet-engine-custom-visibility-conditions', 'jet-engine-dynamic-charts-module',
-                'jet-engine-dynamic-tables-module', 'jet-engine-items-number-filter',
-                'jet-engine-layout-switcher', 'jet-engine-post-expiration-period'
-                // NOTE: jet-woo-builder, jet-woo-product-gallery, jet-blog, jet-search,
-                // jet-smart-filters, jet-reviews, jet-compare-wishlist, jetformbuilder
-                // are NOT here - they load based on page content/URL detection
-            ],
-            'elementor' => ['elementor-pro', 'the-plus-addons-for-elementor-page-builder'],
-            'affiliatewp' => [
-                'affiliatewp-affiliate-portal', 'affiliatewp-multi-tier-commissions',
-                'affiliatewp-paypal-payouts',
-            ],
-            'affiliate-wp' => [
-                'affiliate-wp-affiliate-portal', 'affiliate-wp-multi-tier-commissions',
-                'affiliate-wp-paypal-payouts',
-            ],
-        ];
-
-        // Build circular deps set for O(1) lookup
-        $circular_set = [];
-        foreach ($db_circular_deps as $pair) {
-            if (is_array($pair) && count($pair) >= 2) {
-                $circular_set[$pair[0] . '|' . $pair[1]] = true;
-                $circular_set[$pair[1] . '|' . $pair[0]] = true;
-            }
-        }
-
-        // Build active plugins set for O(1) lookup
-        $active_set = [];
-        foreach ($active_plugins as $plugin_path) {
-            $slug = self::get_plugin_slug($plugin_path);
-            $active_set[$slug] = true;
-        }
-
-        $to_load = [];
-        $queue = $required_slugs;
-        $max_iterations = 1000; // Safety limit to prevent infinite loops
-        $iterations = 0;
-
-        while (!empty($queue) && $iterations < $max_iterations) {
-            $iterations++;
-            $slug = array_shift($queue);
-
-            if (isset($to_load[$slug])) {
-                continue;
-            }
-
-            $to_load[$slug] = true;
-
-            // Get FORWARD dependencies from DB map first, then fallback
-            // IMPORTANT: We use DB for forward deps (what this plugin requires)
-            // but ONLY use curated static list for reverse deps (to prevent cascade)
-            $deps = [];
-
-            if (!empty($db_dependency_map[$slug]['depends_on'])) {
-                // Use database-stored forward dependencies (includes WP 6.5+ header data)
-                $deps = $db_dependency_map[$slug]['depends_on'];
-            } elseif (isset($fallback_dependencies[$slug])) {
-                // Fallback to static map for forward deps
-                $deps = $fallback_dependencies[$slug];
-            }
-
-            // Add direct dependencies (forward: what this plugin requires)
-            foreach ($deps as $dep) {
-                // Check for circular dependency before adding
-                $pair_key = $slug . '|' . $dep;
-                if (isset($circular_set[$pair_key])) {
-                    continue; // Skip circular dependency
-                }
-
-                if (!isset($to_load[$dep])) {
-                    $queue[] = $dep;
-                }
-            }
-
-            // Add reverse dependencies ONLY from curated static list
-            // This prevents cascade loading of all WooCommerce/AffiliateWP extensions
-            // Only jet-engine and elementor should pull in their core UI plugins
-            if (isset($fallback_reverse_deps[$slug])) {
-                foreach ($fallback_reverse_deps[$slug] as $rdep) {
-                    if (!isset($to_load[$rdep]) && isset($active_set[$rdep])) {
-                        // Check for circular dependency
-                        $pair_key = $slug . '|' . $rdep;
-                        if (!isset($circular_set[$pair_key])) {
-                            $queue[] = $rdep;
-                        }
-                    }
-                }
-            }
-        }
-
-        return array_keys($to_load);
-    }
-
-    /**
-     * Extract plugin slug from path (O(n) where n = path length)
+     * Extract plugin slug from path
      */
     private static function get_plugin_slug($plugin_path) {
         $pos = strpos($plugin_path, '/');
@@ -975,8 +548,8 @@ class SHYPDR_Early_Filter {
             'original_count' => self::$original_count,
             'filtered_count' => self::$filtered_count,
             'loaded_plugins' => self::$loaded_plugins,
-            'essential_plugins' => self::$essential_plugins,
-            'detected_plugins' => self::$detected_plugins,
+            'restricted_plugins' => self::$restricted_plugins,
+            'needed_plugins' => self::$needed_plugins,
             'original_plugins' => self::$original_plugins,
             'reduction_percent' => self::$original_count > 0
                 ? round((self::$filtered_count / self::$original_count) * 100, 1)
@@ -995,8 +568,8 @@ class SHYPDR_Early_Filter {
             'reduction_percent' => self::$original_count > 0
                 ? round((self::$filtered_count / self::$original_count) * 100, 1)
                 : 0,
-            'essential_plugins' => self::$essential_plugins,
-            'detected_plugins' => self::$detected_plugins,
+            'restricted_plugins' => self::$restricted_plugins,
+            'needed_plugins' => self::$needed_plugins,
             'loaded_plugins' => self::$loaded_plugins
         ];
     }

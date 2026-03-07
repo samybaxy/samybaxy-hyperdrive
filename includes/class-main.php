@@ -113,13 +113,13 @@ class SHYPDR_Main {
         $log = [
             'timestamp' => current_time('mysql'),
             'url' => isset($_SERVER['REQUEST_URI']) ? esc_url_raw(wp_unslash($_SERVER['REQUEST_URI'])) : 'unknown',
-            'essential_detected' => array_slice($data['essential_plugins'], 0, 10),
+            'needed_plugins' => array_slice($data['needed_plugins'] ?? [], 0, 10),
+            'restricted_plugins' => array_slice($data['restricted_plugins'] ?? [], 0, 10),
             'plugins_loaded' => count($data['loaded_plugins']),
             'plugins_filtered' => $data['filtered_count'],
             'total_plugins' => $data['original_count'],
             'reduction_percent' => $data['reduction_percent'] . '%',
             'loaded_list' => array_slice($data['loaded_plugins'], 0, 20),
-            'filtered_out_list' => [],
             'mu_loader' => true
         ];
 
@@ -142,6 +142,9 @@ class SHYPDR_Main {
         // Rebuild dependency map to include newly activated plugin
         SHYPDR_Dependency_Detector::rebuild_dependency_map();
 
+        // Rebuild restrictable set and restriction rules
+        SHYPDR_Plugin_Scanner::rebuild_restrictable_data();
+
         // Clear caches
         SHYPDR_Detection_Cache::clear_all_caches();
         SHYPDR_Requirements_Cache::clear();
@@ -155,6 +158,9 @@ class SHYPDR_Main {
     public function handle_plugin_deactivation() {
         // Rebuild dependency map to remove deactivated plugin
         SHYPDR_Dependency_Detector::rebuild_dependency_map();
+
+        // Rebuild restrictable set and restriction rules
+        SHYPDR_Plugin_Scanner::rebuild_restrictable_data();
 
         // Clear caches
         SHYPDR_Detection_Cache::clear_all_caches();

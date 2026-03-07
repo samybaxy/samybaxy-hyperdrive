@@ -396,4 +396,281 @@ class SHYPDR_Plugin_Scanner {
         delete_option('shypdr_plugin_analysis');
         delete_option('shypdr_scan_completed');
     }
+
+    /**
+     * Known heavy ecosystems — parent slug => URL keywords that trigger loading.
+     * Children are resolved via the dependency map automatically.
+     */
+    private static $heavy_ecosystems = [
+        'woocommerce' => [
+            'keywords' => ['shop', 'product', 'products', 'cart', 'checkout', 'my-account', 'order-received', 'order-pay'],
+            'post_types' => ['product', 'shop_order', 'shop_coupon', 'product_variation'],
+            'logged_in_only' => false,
+        ],
+        'learnpress' => [
+            'keywords' => ['courses', 'course', 'lessons', 'lesson', 'quiz', 'quizzes', 'instructor', 'become-instructor'],
+            'post_types' => ['lp_course', 'lp_lesson', 'lp_quiz', 'lp_question', 'lp_order'],
+            'logged_in_only' => false,
+        ],
+        'affiliatewp' => [
+            'keywords' => ['affiliate', 'affiliates', 'referral', 'partner', 'partner-dashboard'],
+            'post_types' => ['affiliate'],
+            'logged_in_only' => false,
+        ],
+        'affiliate-wp' => [
+            'keywords' => ['affiliate', 'affiliates', 'referral', 'partner', 'partner-dashboard'],
+            'post_types' => ['affiliate'],
+            'logged_in_only' => false,
+        ],
+        'bbpress' => [
+            'keywords' => ['forums', 'forum', 'topics', 'topic', 'community', 'discussion'],
+            'post_types' => ['forum', 'topic', 'reply'],
+            'logged_in_only' => false,
+        ],
+        'the-events-calendar' => [
+            'keywords' => ['events', 'event', 'calendar', 'tribe-events'],
+            'post_types' => ['tribe_events', 'tribe_venue', 'tribe_organizer'],
+            'logged_in_only' => false,
+        ],
+        'restrict-content-pro' => [
+            'keywords' => ['members', 'member', 'register', 'login', 'subscription', 'account'],
+            'post_types' => ['rcp_subscription', 'rcp_payment'],
+            'logged_in_only' => false,
+        ],
+        'fluentform' => [
+            'keywords' => ['contact', 'form', 'apply', 'submit', 'booking', 'appointment', 'schedule'],
+            'post_types' => ['fluentform'],
+            'logged_in_only' => false,
+        ],
+        'jetformbuilder' => [
+            'keywords' => ['contact', 'form', 'apply', 'submit', 'booking', 'appointment', 'schedule'],
+            'post_types' => ['jet-form-builder'],
+            'logged_in_only' => false,
+        ],
+        'contact-form-7' => [
+            'keywords' => ['contact', 'form', 'apply', 'submit'],
+            'post_types' => [],
+            'logged_in_only' => false,
+        ],
+    ];
+
+    /**
+     * Get or build the restrictable plugins set
+     *
+     * @param bool $force_rebuild Force a rebuild
+     * @return array Restrictable plugin slugs
+     */
+    public static function get_restrictable_plugins($force_rebuild = false) {
+        if (!$force_rebuild) {
+            $cached = get_option('shypdr_restrictable_plugins', false);
+            if ($cached !== false) {
+                return $cached;
+            }
+        }
+
+        $result = self::build_restrictable_set();
+        update_option('shypdr_restrictable_plugins', $result, false);
+        return $result;
+    }
+
+    /**
+     * Get or build the restriction rules
+     *
+     * @param bool $force_rebuild Force a rebuild
+     * @return array Ecosystem slug => rule definition
+     */
+    public static function get_restriction_rules($force_rebuild = false) {
+        if (!$force_rebuild) {
+            $cached = get_option('shypdr_restriction_rules', false);
+            if ($cached !== false) {
+                return $cached;
+            }
+        }
+
+        $result = self::build_restriction_rules();
+        update_option('shypdr_restriction_rules', $result, false);
+        return $result;
+    }
+
+    /**
+     * Build the set of plugins that CAN be conditionally restricted.
+     *
+     * Only heavy ecosystem plugins end up here. Lightweight utilities,
+     * page builders, theme frameworks, and anything scored "critical"
+     * are never restrictable.
+     *
+     * @return array Plugin slugs that can be restricted
+     */
+    public static function build_restrictable_set() {
+        $active_plugins = get_option('active_plugins', []);
+        $restrictable = [];
+
+        // Get the dependency map so we can resolve ecosystem children
+        $dep_map = [];
+        if (class_exists('SHYPDR_Dependency_Detector')) {
+            $dep_map = SHYPDR_Dependency_Detector::get_dependency_map();
+        }
+
+        // Build a set of all ecosystem parent slugs
+        $ecosystem_parents = array_keys(self::$heavy_ecosystems);
+
+        // Build a reverse lookup: child slug => parent slug(s)
+        $child_to_parent = [];
+
+        // From dependency map: if a plugin depends_on an ecosystem parent, it's a child
+        foreach ($dep_map as $slug => $data) {
+            if (!empty($data['depends_on'])) {
+                foreach ($data['depends_on'] as $dep) {
+                    if (in_array($dep, $ecosystem_parents, true)) {
+                        $child_to_parent[$slug] = $dep;
+                    }
+                }
+            }
+        }
+
+        // Also use known_ecosystems from dependency detector if available
+        if (class_exists('SHYPDR_Dependency_Detector') && method_exists('SHYPDR_Dependency_Detector', 'get_known_ecosystems')) {
+            $known = SHYPDR_Dependency_Detector::get_known_ecosystems();
+            foreach ($known as $parent => $children) {
+                if (in_array($parent, $ecosystem_parents, true)) {
+                    foreach ($children as $child) {
+                        $child_to_parent[$child] = $parent;
+                    }
+                }
+            }
+        }
+
+        // Analyze each active plugin
+        foreach ($active_plugins as $plugin_path) {
+            $slug = self::get_plugin_slug($plugin_path);
+
+            // Skip the hyperdrive plugin itself
+            if ($slug === 'samybaxy-hyperdrive') {
+                continue;
+            }
+
+            // Check if it's an ecosystem parent
+            if (in_array($slug, $ecosystem_parents, true)) {
+                $restrictable[] = $slug;
+                continue;
+            }
+
+            // Check if it's a known ecosystem child
+            if (isset($child_to_parent[$slug])) {
+                $restrictable[] = $slug;
+                continue;
+            }
+
+            // Heuristic: slug prefix matches an ecosystem parent
+            // e.g., "woocommerce-subscriptions" starts with "woocommerce"
+            foreach ($ecosystem_parents as $parent) {
+                if (strpos($slug, $parent . '-') === 0 || strpos($slug, $parent . '_') === 0) {
+                    $restrictable[] = $slug;
+                    continue 2;
+                }
+            }
+
+            // Heuristic for "woo-" prefixed plugins (common WooCommerce pattern)
+            if (strpos($slug, 'woo-') === 0 || strpos($slug, 'wc-') === 0) {
+                $restrictable[] = $slug;
+                continue;
+            }
+
+            // Heuristic for jet-woo plugins
+            if (strpos($slug, 'jet-woo') === 0) {
+                $restrictable[] = $slug;
+                continue;
+            }
+        }
+
+        // Allow admin overrides — merge in any manually-added restrictable plugins
+        $manual_additions = get_option('shypdr_manual_restrictable', []);
+        if (is_array($manual_additions)) {
+            $restrictable = array_merge($restrictable, $manual_additions);
+        }
+
+        // Allow admin overrides — remove any manually-excluded plugins
+        $manual_exclusions = get_option('shypdr_manual_unrestricted', []);
+        if (is_array($manual_exclusions)) {
+            $restrictable = array_diff($restrictable, $manual_exclusions);
+        }
+
+        return array_unique(array_values($restrictable));
+    }
+
+    /**
+     * Build restriction rules for each ecosystem.
+     *
+     * Rules define WHEN a restrictable ecosystem should be LOADED
+     * (i.e., when not to restrict it). If any rule matches, the
+     * ecosystem and all its children load.
+     *
+     * @return array Ecosystem slug => rule definition
+     */
+    public static function build_restriction_rules() {
+        $rules = [];
+        $active_plugins = get_option('active_plugins', []);
+        $active_slugs = array_map([__CLASS__, 'get_plugin_slug'], $active_plugins);
+
+        // Only build rules for ecosystems that have active plugins
+        foreach (self::$heavy_ecosystems as $parent => $rule) {
+            if (in_array($parent, $active_slugs, true)) {
+                // Get shortcodes that map to this ecosystem
+                $shortcodes = self::get_shortcodes_for_plugin($parent);
+
+                $rules[$parent] = [
+                    'keywords' => $rule['keywords'],
+                    'post_types' => $rule['post_types'],
+                    'shortcodes' => $shortcodes,
+                    'logged_in_only' => $rule['logged_in_only'],
+                ];
+            }
+        }
+
+        // Allow custom rules via filter
+        $rules = apply_filters('shypdr_restriction_rules', $rules);
+
+        return $rules;
+    }
+
+    /**
+     * Get shortcodes that map to a given plugin slug.
+     * Uses the content analyzer's shortcode map.
+     *
+     * @param string $plugin_slug Plugin slug
+     * @return array Shortcode names
+     */
+    private static function get_shortcodes_for_plugin($plugin_slug) {
+        $shortcodes = [];
+
+        // Access the content analyzer's shortcode map
+        if (!class_exists('SHYPDR_Content_Analyzer')) {
+            return $shortcodes;
+        }
+
+        // The shortcode map is private, so we use reflection or a known list
+        // For now, use the known mapping from the content analyzer
+        $known_shortcode_map = [
+            'woocommerce' => ['woocommerce_cart', 'woocommerce_checkout', 'woocommerce_my_account', 'woocommerce_order_tracking', 'products', 'product', 'product_page', 'product_category', 'product_categories', 'add_to_cart', 'add_to_cart_url', 'shop_messages', 'recent_products', 'sale_products', 'best_selling_products', 'top_rated_products', 'featured_products', 'related_products'],
+            'learnpress' => ['learn_press_profile', 'learn_press_become_teacher_form', 'learn_press_checkout', 'learn_press_courses', 'learn_press_popular_courses', 'learn_press_featured_courses', 'learn_press_recent_courses'],
+            'affiliatewp' => ['affiliate_area', 'affiliate_login', 'affiliate_registration', 'affiliate_referral_url', 'affiliate_creatives'],
+            'restrict-content-pro' => ['register_form', 'login_form', 'rcp_registration_form', 'rcp_login_form', 'restrict'],
+            'fluentform' => ['fluentform', 'fluentform_modal', 'fluentform_info'],
+            'jetformbuilder' => ['jet_fb_form'],
+            'contact-form-7' => ['contact-form-7', 'contact-form'],
+            'bbpress' => [],
+            'the-events-calendar' => [],
+        ];
+
+        return $known_shortcode_map[$plugin_slug] ?? [];
+    }
+
+    /**
+     * Rebuild all restrictable data (set + rules).
+     * Called on plugin activation/deactivation and manual rescan.
+     */
+    public static function rebuild_restrictable_data() {
+        self::get_restrictable_plugins(true);
+        self::get_restriction_rules(true);
+    }
 }
